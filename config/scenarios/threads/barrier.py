@@ -34,23 +34,103 @@ def scenario_1():
 
     return {
         'output': output_buffer.getvalue(),
-        'explanation': 'سناریو ۱: الگوی پایه Barrier - مسابقه دو'
+        'explanation': '''
+        در این سناریو سه Thread به صورت همزمان
+شروع به اجرا می‌کنند و هر کدام پس از
+انجام بخشی از کار خود به یک Barrier می‌رسند.
+
+Barrier باعث می‌شود هیچ Threadی نتواند
+به مرحله بعد وارد شود تا زمانی که
+همه Threadها به نقطه تعیین‌شده برسند.
+
+پس از رسیدن آخرین Thread، مانع برداشته شده
+و همه Threadها به صورت همزمان ادامه می‌دهند.
+
+این روش برای هماهنگ‌سازی چند وظیفه موازی
+و اطمینان از تکمیل یک مرحله مشترک
+قبل از شروع مرحله بعد کاربرد دارد.
+        '''
     }
 
 
-# ==================== Scenario 2: Multiple Phases with Barrier ====================
+#Scenario 2: Multiple Phases with Barrier
+def scenario_2():
+    output_buffer = io.StringIO()
+
+    num_workers = 3
+    num_phases = 3
+
+    barrier = threading.Barrier(num_workers)
+
+    def worker(worker_id):
+        for phase in range(num_phases):
+
+            output_buffer.write(
+                f'Worker-{worker_id} started Phase-{phase + 1}\n'
+            )
+
+            time.sleep(random.uniform(0.5, 2))
+
+            output_buffer.write(
+                f'Worker-{worker_id} finished Phase-{phase + 1}\n'
+            )
+
+            output_buffer.write(
+                f'Worker-{worker_id} waiting at Barrier\n'
+            )
+
+            barrier.wait()
+
+            output_buffer.write(
+                f'Worker-{worker_id} entering next phase\n'
+            )
+
+    output_buffer.write(
+        '=== Starting Multi-Phase Processing ===\n\n'
+    )
+
+    threads = []
+
+    for i in range(num_workers):
+        t = threading.Thread(target=worker, args=(i + 1,))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    output_buffer.write(
+        '\n=== All Phases Completed ===\n'
+    )
+
+    return {
+        'output': output_buffer.getvalue(),
+        'explanation': '''
+سناریو ۲: پردازش چندمرحله‌ای با Barrier
+
+در این سناریو چند Thread به صورت موازی
+در چند مرحله مختلف فعالیت می‌کنند.
+
+هر Thread پس از اتمام یک مرحله به Barrier
+می‌رسد و تا رسیدن سایر Threadها منتظر می‌ماند.
+
+تنها زمانی که همه Threadها مرحله جاری را
+به پایان برسانند، Barrier آزاد شده و
+مرحله بعدی آغاز می‌شود.
+
+این فرآیند برای تمامی مراحل تکرار می‌شود
+تا هماهنگی کامل میان Threadها حفظ گردد.
+
+این روش در سیستم‌های پردازش موازی کاربرد دارد؛
+جایی که شروع هر مرحله وابسته به اتمام
+مرحله قبل توسط تمامی پردازش‌ها است.
+'''
+    }
 
 
-
-# ==================== Scenario 3: Barrier with Action ====================
+#Scenario 3: Barrier with Action
 
 def scenario_3():
-    """
-    سناریو ۳: Barrier با Action - جمع‌آوری نتایج
-
-    Barrier می‌تواند یک تابع action داشته باشد که وقتی همه threadها
-    به barrier رسیدند، یکبار اجرا می‌شود (توسط آخرین thread).
-    """
     output_buffer = io.StringIO()
 
     num_workers = 3
@@ -58,7 +138,6 @@ def scenario_3():
     results_lock = threading.Lock()
 
     def collect_results():
-        """این تابع وقتی همه به barrier رسیدند، اجرا می‌شود"""
         with results_lock:
             total = sum(results)
             avg = total / len(results)
@@ -67,12 +146,10 @@ def scenario_3():
             output_buffer.write(f'--- End Action ---\n\n')
             results.clear()
 
-    # Barrier با action
     barrier = threading.Barrier(num_workers, action=collect_results)
 
     def worker(worker_id):
         for round_num in range(3):
-            # انجام محاسبه
             time.sleep(random.uniform(0.3, 1.0))
             result = random.randint(10, 100)
 
@@ -82,7 +159,6 @@ def scenario_3():
             timestamp = time.strftime('%H:%M:%S')
             output_buffer.write(f'[{timestamp}] Worker-{worker_id} Round-{round_num + 1}: {result}\n')
 
-            # منتظر بقیه - action اجرا می‌شود
             barrier.wait()
 
     output_buffer.write('=== Starting Computation ===\n\n')
@@ -100,5 +176,23 @@ def scenario_3():
 
     return {
         'output': output_buffer.getvalue(),
-        'explanation': 'سناریو ۳: Barrier با Action'
+        'explanation': '''
+        در این سناریو چند Thread به صورت موازی
+محاسبات خود را انجام داده و نتایج را
+در یک منبع مشترک ذخیره می‌کنند.
+
+پس از رسیدن همه Threadها به Barrier،
+یک تابع Action به صورت خودکار اجرا می‌شود
+و نتایج تولیدشده را جمع‌آوری و پردازش می‌کند.
+
+بعد از اجرای Action، Barrier آزاد شده
+و همه Threadها وارد مرحله بعدی می‌شوند.
+
+این فرآیند در چند مرحله متوالی تکرار می‌شود
+و در پایان هر مرحله، نتایج به صورت متمرکز
+محاسبه و آماده استفاده می‌شوند.
+
+این الگو برای پردازش‌های گروهی، تحلیل داده
+و هماهنگ‌سازی محاسبات موازی بسیار مناسب است.
+        '''
     }
