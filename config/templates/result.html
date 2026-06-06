@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نتیجه اجرا</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+        }
+
+        .info-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .info-section p {
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .info-section strong {
+            color: #667eea;
+        }
+
+        .output-section {
+            margin-bottom: 30px;
+            direction: ltr;
+        }
+
+        .explanation-section {
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .explanation-section pre {
+            background-color: #f8f9fa;
+            color: #555;
+            border: 1px solid #ddd;
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            border-right: 4px solid #c33;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>نتیجه اجرای سناریو</h1>
+
+        <div class="info-section">
+            <p><strong>روش:</strong> {{ method }}</p>
+            <p><strong>ابزار:</strong> {{ tool }}</p>
+            <p><strong>شماره سناریو:</strong> {{ scenario_num }}</p>
+        </div>
+
+        {% if success %}
+            <div class="output-section">
+                <h2>Results:</h2>
+                <pre>{{ output }}</pre>
+            </div>
+
+            {% if explanation %}
+                <div class="explanation-section">
+                    <h2>توضیحات:</h2>
+                    <pre>{{ explanation }}</pre>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="error">
+                <h2>خطا در اجرای سناریو</h2>
+                <pre>{{ error }}</pre>
+            </div>
+        {% endif %}
+
+        <br>
+        <a href="{% url 'core:index' %}" class="back-btn">اجرای سناریوی دیگر</a>
+    </div>
+</body>
+</html>
