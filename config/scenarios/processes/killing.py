@@ -3,7 +3,6 @@ import time
 
 
 def foo(output_queue, task_name, duration):
-    """تابع worker که خروجی‌ها را به queue می‌فرستد"""
     output_queue.put(f"{task_name}: Starting...")
     for i in range(duration):
         time.sleep(1)
@@ -12,11 +11,9 @@ def foo(output_queue, task_name, duration):
 
 
 def scenario_1():
-    """سناریو اول: Killing a Process"""
     output_queue = multiprocessing.Queue()
     outputs = []
 
-    # ایجاد پراسس
     p = multiprocessing.Process(
         target=foo,
         args=(output_queue, "TerminateDemo", 10),
@@ -24,49 +21,57 @@ def scenario_1():
     )
     p.daemon = False
 
-    # قبل از اجرا
     outputs.append(f"Process before execution: {p} {p.is_alive()}")
 
-    # شروع پراسس
     p.start()
     outputs.append(f"Process running: {p} {p.is_alive()}")
 
-    # اجازه اجرا برای مدت کوتاه
     time.sleep(2)
 
-    # terminate کردن پراسس
     p.terminate()
     outputs.append(f"Process terminated: {p} {p.is_alive()}")
 
-    # join کردن پراسس
     p.join()
     outputs.append(f"Process joined: {p} {p.is_alive()}")
 
-    # نمایش exit code
     outputs.append(f"Process exit code: {p.exitcode}")
 
-    # جمع‌آوری خروجی‌های queue
     queue_outputs = []
     while not output_queue.empty():
         queue_outputs.append(output_queue.get())
 
-    # تبدیل لیست‌ها به رشته
-    output_text = "\n".join(outputs)
     queue_text = "\n".join(queue_outputs)
 
     return {
-        'output': output_text,
         'queue_output': queue_text,
-        'explanation': 'سناریو اول: نمایش چرخه حیات پراسس و terminate کردن دستی آن. پراسس قبل از اتمام کار، با terminate() متوقف می‌شود و exitcode برابر -15 (SIGTERM) است.'
+        'explanation': '''
+        در این سناریو یک Process ایجاد می‌شود
+و پس از شروع اجرا، برای مدت کوتاهی
+به فعالیت خود ادامه می‌دهد.
+
+بعد از چند ثانیه، Process با استفاده از
+دستور terminate() به صورت اجباری
+متوقف می‌شود و فرصت تکمیل وظیفه خود
+را نخواهد داشت.
+
+پس از توقف، با استفاده از join()
+منتظر پایان کامل Process می‌مانیم
+و وضعیت نهایی آن بررسی می‌شود.
+
+در انتها مقدار exitcode نمایش داده می‌شود
+تا مشخص شود Process به صورت طبیعی
+خاتمه یافته یا به شکل اجباری متوقف شده است.
+
+این سناریو نحوه مدیریت چرخه حیات Process
+و متوقف کردن دستی آن را نمایش می‌دهد.
+        '''
     }
 
 
 def scenario_2():
-    """سناریو دوم: Daemon Process"""
     output_queue = multiprocessing.Queue()
     outputs = []
 
-    # ایجاد دو پراسس: daemon و non-daemon
     p_daemon = multiprocessing.Process(
         target=foo,
         args=(output_queue, "DaemonProcess", 5),
@@ -81,47 +86,58 @@ def scenario_2():
     )
     p_normal.daemon = False
 
-    # نمایش وضعیت اولیه
     outputs.append(f"Daemon process before execution: {p_daemon} daemon={p_daemon.daemon} alive={p_daemon.is_alive()}")
     outputs.append(f"Normal process before execution: {p_normal} daemon={p_normal.daemon} alive={p_normal.is_alive()}")
 
-    # شروع هر دو پراسس
     p_daemon.start()
     p_normal.start()
 
     outputs.append(f"Daemon process started: {p_daemon} alive={p_daemon.is_alive()}")
     outputs.append(f"Normal process started: {p_normal} alive={p_normal.is_alive()}")
 
-    # فقط منتظر non-daemon می‌مانیم
     p_normal.join()
 
     outputs.append(f"Normal process finished: {p_normal} alive={p_normal.is_alive()} exitcode={p_normal.exitcode}")
 
-    # daemon process هنوز در حال اجراست اما برنامه اصلی تمام می‌شود
     outputs.append(f"Daemon process status: {p_daemon} alive={p_daemon.is_alive()}")
 
-    # جمع‌آوری خروجی‌های queue
     queue_outputs = []
     while not output_queue.empty():
         queue_outputs.append(output_queue.get())
 
-    # تبدیل لیست‌ها به رشته
-    output_text = "\n".join(outputs)
     queue_text = "\n".join(queue_outputs)
 
     return {
-        'output': output_text,
         'queue_output': queue_text,
-        'explanation': 'سناریو دوم: مقایسه daemon و non-daemon process. پراسس daemon به محض اتمام برنامه اصلی، خودکار terminate می‌شود بدون نیاز به join() یا terminate(). پراسس normal باید به صورت صریح join شود.'
+        'explanation': '''
+        در این سناریو دو Process به صورت همزمان
+ایجاد و اجرا می‌شوند.
+
+یکی از Processها به عنوان Daemon
+و دیگری به عنوان Process عادی
+تعریف شده است.
+
+Process عادی به صورت کامل اجرا شده
+و برنامه اصلی منتظر پایان آن می‌ماند،
+اما Process Daemon وابسته به
+عمر برنامه اصلی است.
+
+در صورتی که برنامه اصلی خاتمه یابد،
+Process Daemon نیز به صورت خودکار
+متوقف خواهد شد، حتی اگر هنوز
+کار آن به پایان نرسیده باشد.
+
+این سناریو تفاوت میان Processهای
+Daemon و Non-Daemon را در نحوه
+مدیریت و خاتمه اجرا نشان می‌دهد.
+        '''
     }
 
 
 def scenario_3():
-    """سناریو سوم: Process with Timeout"""
     output_queue = multiprocessing.Queue()
     outputs = []
 
-    # حالت اول: پراسسی که در timeout تمام می‌شود
     p_fast = multiprocessing.Process(
         target=foo,
         args=(output_queue, "FastProcess", 2),
@@ -134,7 +150,6 @@ def scenario_3():
     p_fast.start()
     outputs.append(f"Fast process started: {p_fast} {p_fast.is_alive()}")
 
-    # منتظر می‌مانیم با timeout 5 ثانیه
     p_fast.join(timeout=5)
 
     if p_fast.is_alive():
@@ -144,7 +159,7 @@ def scenario_3():
     else:
         outputs.append(f"Fast process completed: {p_fast} alive={p_fast.is_alive()} exitcode={p_fast.exitcode}")
 
-    # حالت دوم: پراسسی که timeout می‌شود
+    # when the process will have timeout
     p_slow = multiprocessing.Process(
         target=foo,
         args=(output_queue, "SlowProcess", 10),
@@ -157,7 +172,6 @@ def scenario_3():
     p_slow.start()
     outputs.append(f"Slow process started: {p_slow} {p_slow.is_alive()}")
 
-    # منتظر می‌مانیم با timeout 3 ثانیه
     p_slow.join(timeout=3)
 
     if p_slow.is_alive():
@@ -168,18 +182,35 @@ def scenario_3():
     else:
         outputs.append(f"Slow process completed: {p_slow} alive={p_slow.is_alive()} exitcode={p_slow.exitcode}")
 
-    # جمع‌آوری خروجی‌های queue
     queue_outputs = []
     while not output_queue.empty():
         queue_outputs.append(output_queue.get())
 
-    # تبدیل لیست‌ها به رشته
-    output_text = "\n".join(outputs)
     queue_text = "\n".join(queue_outputs)
 
     return {
-        'output': output_text,
         'queue_output': queue_text,
-        'explanation': 'سناریو سوم: مدیریت پراسس با timeout. از join(timeout) برای تعیین حداکثر زمان انتظار استفاده می‌شود. اگر پراسس در زمان مشخص تمام نشود، با terminate() متوقف می‌شود. این الگو برای taskهای time-sensitive مناسب است.'
+        'explanation': '''
+        در این سناریو برای کنترل مدت زمان اجرای
+Processها از دستور join(timeout)
+استفاده می‌شود.
+
+ابتدا یک Process با زمان اجرای کوتاه
+ایجاد می‌شود و برنامه برای مدت مشخصی
+منتظر پایان آن می‌ماند.
+
+در صورتی که Process در زمان تعیین‌شده
+به پایان برسد، اجرای آن به صورت طبیعی
+خاتمه پیدا می‌کند.
+
+سپس یک Process دیگر با زمان اجرای طولانی‌تر
+راه‌اندازی می‌شود و در صورت عبور از
+حد مجاز زمانی، با استفاده از terminate()
+متوقف می‌گردد.
+
+این روش برای مدیریت وظایف زمان‌حساس
+و جلوگیری از اشغال طولانی‌مدت منابع سیستم
+کاربرد فراوانی دارد.
+        '''
     }
 

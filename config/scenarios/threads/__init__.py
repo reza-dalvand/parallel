@@ -1,8 +1,3 @@
-"""
-Thread-based parallel processing scenarios
-هر ماژول شامل 3 سناریو است
-"""
-
 from . import (
     defining_thread,
     current_thread,
@@ -10,7 +5,10 @@ from . import (
     lock,
     rlock,
     semaphore,
-    barrier
+    barrier,
+    event,
+    condition,
+    queue
 )
 
 __all__ = [
@@ -20,5 +18,8 @@ __all__ = [
     'lock',
     'rlock',
     'semaphore',
-    'barrier'
+    'barrier',
+    'event',
+    'condition',
+    'queue',
 ]

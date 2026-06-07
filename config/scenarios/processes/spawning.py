@@ -1,45 +1,30 @@
 import multiprocessing
 import io
-import time
 
 
 def myFunc(i, queue):
-    """
-    تابعی که توسط هر پراسس فرزند اجرا می‌شه
-    اعداد از 0 تا i-1 رو چاپ می‌کنه
-    """
     output = f'calling myFunc from process n°: {i}\n'
+
     for j in range(0, i):
         output += f'output from myFunc is :{j}\n'
+
     queue.put(output)
 
 
 def scenario_1():
-    """
-    سناریو ۱: اجرای ترتیبی پراسس‌ها
-
-    این کد مشابه الگوی Barrier است اما با multiprocessing:
-    - 6 پراسس به صورت ترتیبی اجرا می‌شوند
-    - هر پراسس باید تمام شود تا بعدی شروع شود
-    - خروجی همه پراسس‌ها جمع‌آوری می‌شود
-    """
     output_buffer = io.StringIO()
     queue = multiprocessing.Queue()
 
-    output_buffer.write('START SEQUENTIAL PROCESSING!!!!\n')
-
-    # ساخت و اجرای 6 پراسس به صورت ترتیبی
     for i in range(6):
-        # تعریف پراسس با تابع هدف و آرگومان
-        process = multiprocessing.Process(target=myFunc, args=(i, queue))
+        process = multiprocessing.Process(
+            target=myFunc,
+            args=(i, queue)
+        )
 
-        # شروع پراسس (spawning)
         process.start()
 
-        # منتظر ماندن تا پراسس تمام شود
         process.join()
 
-        # دریافت خروجی از queue
         if not queue.empty():
             output_buffer.write(queue.get())
 
@@ -50,101 +35,182 @@ def scenario_1():
 
     return {
         'output': result,
-        'explanation': 'سناریو ۱: اجرای ترتیبی - هر پراسس بعد از اتمام پراسس قبلی شروع می‌شود'
+        'explanation': '''
+سناریو ۱: اجرای ترتیبی Processها
+
+در این سناریو شش Process مستقل ایجاد می‌شود.
+
+به دلیل استفاده از دستور join() بلافاصله
+پس از start()، هر Process باید ابتدا
+به پایان برسد تا Process بعدی آغاز شود.
+
+در نتیجه تمامی Processها به صورت ترتیبی
+اجرا می‌شوند و پردازش همزمانی میان آن‌ها
+اتفاق نمی‌افتد.
+
+این سناریو برای آشنایی با نحوه ایجاد،
+اجرا، همگام‌سازی و پایان یافتن Processها
+مورد استفاده قرار می‌گیرد.
+
+همچنین نشان می‌دهد که استفاده از Process
+به تنهایی به معنای اجرای موازی نیست و
+نحوه مدیریت آن‌ها تعیین‌کننده رفتار برنامه است.
+'''
     }
 
 
-def myFunc2(i, queue):
-    """تابعی که توسط هر پراسس فرزند اجرا می‌شه"""
-    output = f'calling myFunc from process n°: {i}\n'
-    for j in range(0, i):
-        output += f'output from myFunc is :{j}\n'
-    queue.put(output)
-
-
 def scenario_2():
-    """
-    سناریو: 2 والد و 3 فرزند
-
-    ساختار:
-    - والد اول: 2 فرزند می‌سازه (فرزند 0 و 1)
-    - والد دوم: 1 فرزند می‌سازه (فرزند 2)
-    """
     output_buffer = io.StringIO()
     queue = multiprocessing.Queue()
 
-    output_buffer.write('=== START: 2 والد و 3 فرزند ===\n\n')
+    output_buffer.write(
+        'START: 2 PARENTS AND 3 CHILDREN\n\n'
+    )
 
-    # والد اول: می‌سازه فرزند 0 و 1
-    output_buffer.write('[والد 1] شروع کار - می‌سازم فرزند 0 و 1\n')
+    output_buffer.write(
+        '[Parent 1] Starting work - Creating Child 0 and Child 1\n'
+    )
+
     for i in range(2):
-        output_buffer.write(f'[والد 1] دارم فرزند {i} رو می‌سازم...\n')
-        process = multiprocessing.Process(target=myFunc, args=(i, queue))
+        output_buffer.write(
+            f'[Parent 1] Creating Child {i}...\n'
+        )
+
+        process = multiprocessing.Process(
+            target=myFunc,
+            args=(i, queue)
+        )
+
         process.start()
         process.join()
+
         if not queue.empty():
             output_buffer.write(queue.get())
-        output_buffer.write(f'[والد 1] فرزند {i} تموم شد ✓\n\n')
 
-    output_buffer.write('[والد 1] کارم تموم شد!\n\n')
+        output_buffer.write(
+            f'[Parent 1] Child {i} completed ✓\n\n'
+        )
 
-    # والد دوم: می‌سازه فرزند 2
-    output_buffer.write('[والد 2] شروع کار - می‌سازم فرزند 2\n')
-    output_buffer.write(f'[والد 2] دارم فرزند 2 رو می‌سازم...\n')
-    process = multiprocessing.Process(target=myFunc, args=(2, queue))
+    output_buffer.write(
+        '[Parent 1] Finished all tasks!\n\n'
+    )
+
+    output_buffer.write(
+        '[Parent 2] Starting work - Creating Child 2\n'
+    )
+
+    output_buffer.write(
+        '[Parent 2] Creating Child 2...\n'
+    )
+
+    process = multiprocessing.Process(
+        target=myFunc,
+        args=(2, queue)
+    )
+
     process.start()
     process.join()
+
     if not queue.empty():
         output_buffer.write(queue.get())
-    output_buffer.write(f'[والد 2] فرزند 2 تموم شد ✓\n\n')
 
-    output_buffer.write('[والد 2] کارم تموم شد!\n\n')
-    output_buffer.write('=== همه کارها تموم شد! ===\n')
+    output_buffer.write(
+        '[Parent 2] Child 2 completed ✓\n\n'
+    )
+
+    output_buffer.write(
+        '[Parent 2] Finished all tasks!\n\n'
+    )
 
     result = output_buffer.getvalue()
     output_buffer.close()
 
     return {
         'output': result,
-        'explanation': '2 والد: اولی 2 فرزند می‌سازه، دومی 1 فرزند'
+        'explanation': '''
+سناریو ۲: دو والد و سه فرزند
+
+در این سناریو ساختار اجرای برنامه به صورت
+دو والد و سه فرزند سازمان‌دهی شده است.
+
+والد اول دو Process فرزند ایجاد می‌کند
+و پس از پایان هر فرزند، فرزند بعدی را
+راه‌اندازی می‌کند.
+
+پس از اتمام کار والد اول، والد دوم
+یک Process فرزند دیگر ایجاد کرده و
+منتظر پایان اجرای آن می‌ماند.
+
+استفاده از join() باعث می‌شود هر فرزند
+قبل از ادامه اجرای والد به پایان برسد.
+
+این سناریو نحوه مدیریت چند Process فرزند
+توسط یک Process والد و کنترل ترتیب اجرای
+آن‌ها را نمایش می‌دهد.
+'''
     }
 
 
 def scenario_3():
-    """
-    سناریو: 3 والد و 3 فرزند
-
-    ساختار:
-    - والد اول: فرزند 0 رو می‌سازه
-    - والد دوم: فرزند 1 رو می‌سازه
-    - والد سوم: فرزند 2 رو می‌سازه
-    """
     output_buffer = io.StringIO()
     queue = multiprocessing.Queue()
 
-    output_buffer.write('=== START: 3 والد و 3 فرزند ===\n\n')
+    output_buffer.write(
+        'START: 3 PARENTS AND 3 CHILDREN \n\n'
+    )
 
-    # هر والد یک فرزند می‌سازه
     for parent_id in range(3):
-        child_id = parent_id
-        output_buffer.write(f'[والد {parent_id + 1}] شروع کار - می‌سازم فرزند {child_id}\n')
 
-        process = multiprocessing.Process(target=myFunc, args=(child_id, queue))
+        child_id = parent_id
+
+        output_buffer.write(
+            f'[Parent {parent_id + 1}] Starting work - Creating Child {child_id}\n'
+        )
+
+        process = multiprocessing.Process(
+            target=myFunc,
+            args=(child_id, queue)
+        )
+
         process.start()
         process.join()
 
         if not queue.empty():
             output_buffer.write(queue.get())
 
-        output_buffer.write(f'[والد {parent_id + 1}] فرزند {child_id} تموم شد ✓\n')
-        output_buffer.write(f'[والد {parent_id + 1}] کارم تموم شد!\n\n')
+        output_buffer.write(
+            f'[Parent {parent_id + 1}] Child {child_id} completed ✓\n'
+        )
 
-    output_buffer.write('=== همه کارها تموم شد! ===\n')
+        output_buffer.write(
+            f'[Parent {parent_id + 1}] Finished all tasks!\n\n'
+        )
 
     result = output_buffer.getvalue()
     output_buffer.close()
 
     return {
         'output': result,
-        'explanation': '3 والد: هر کدوم یک فرزند می‌سازن'
+        'explanation': '''
+سناریو ۳: سه والد و سه فرزند
+
+در این سناریو سه والد مستقل در نظر گرفته شده‌اند
+که هر کدام مسئول ایجاد یک Process فرزند هستند.
+
+هر والد ابتدا Process فرزند خود را ایجاد کرده،
+سپس با استفاده از join() منتظر پایان اجرای
+آن باقی می‌ماند.
+
+پس از اتمام فرزند، والد کار خود را
+به پایان رسانده و نوبت به والد بعدی
+می‌رسد.
+
+این ساختار یک رابطه یک‌به‌یک میان والد
+و فرزند را شبیه‌سازی می‌کند و نحوه
+مدیریت و همگام‌سازی Processها را نشان می‌دهد.
+
+این سناریو برای درک بهتر مفهوم ایجاد،
+اجرا و کنترل Processهای فرزند توسط
+Processهای والد کاربرد دارد.
+'''
     }

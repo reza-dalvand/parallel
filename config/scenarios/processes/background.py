@@ -1,85 +1,70 @@
 import multiprocessing
 import time
+import io
 
 
-def foo(q):
-    """
-    تابع اصلی که توسط هر پراسس اجرا می‌شود
-    """
+def foo(output_queue):
     name = multiprocessing.current_process().name
 
-    # ارسال پیام شروع
-    q.put(f'Starting {name}')
+    output_queue.put(f"Starting {name}")
 
-    # تاخیر کوچک تا هر دو پراسس پیام Starting را ارسال کنند
-    time.sleep(0.1)
-
-    # تعیین محدوده اعداد بر اساس نام پراسس
     if name == 'background_process':
-        numbers = range(0, 5)
-    else:  # NO_background_process
-        numbers = range(5, 10)
+        for i in range(0, 5):
+            output_queue.put(f'---> {i}')
+            time.sleep(1)
+    else:
+        for i in range(5, 10):
+            output_queue.put(f'---> {i}')
+            time.sleep(1)
 
-    # چاپ اعداد
-    for i in numbers:
-        q.put(f'---> {i}')
-        time.sleep(0.01)
-
-    # ارسال پیام پایان
-    q.put(f'Exiting {name}')
+    output_queue.put(f"Exiting {name}")
 
 
 def scenario_1():
-    """
-    سناریو 1: اجرای پراسس‌های Background و Foreground
-    """
+    output_buffer = io.StringIO()
     output_queue = multiprocessing.Queue()
-
-    # ساخت پراسس‌ها
-    NO_background_process = multiprocessing.Process(
-        name='NO_background_process',
-        target=foo,
-        args=(output_queue,)
-    )
-    NO_background_process.daemon = False
 
     background_process = multiprocessing.Process(
         name='background_process',
         target=foo,
         args=(output_queue,)
     )
-    background_process.daemon = False
+    background_process.daemon = True
 
-    # شروع همزمان
-    NO_background_process.start()
+    no_background_process = multiprocessing.Process(
+        name='NO_background_process',
+        target=foo,
+        args=(output_queue,)
+    )
+    no_background_process.daemon = False
+
     background_process.start()
+    no_background_process.start()
 
-    # چاپ real-time
+    no_background_process.join()
+
     outputs = []
-    while NO_background_process.is_alive() or background_process.is_alive() or not output_queue.empty():
-        try:
-            msg = output_queue.get(timeout=0.01)
-            print(msg)
-            outputs.append(msg)
-        except:
-            continue
+    while not output_queue.empty():
+        outputs.append(output_queue.get())
 
-    # منتظر اتمام
-    NO_background_process.join()
-    background_process.join()
+    output_buffer.write("\n".join(outputs))
 
     return {
-        'output': '\n'.join(outputs),
-        'explanation': 'دو پراسس به صورت موازی اجرا می‌شوند'
+        "output": output_buffer.getvalue(),
+        "explanation": """
+سناریو ۱: اجرای Processهای Daemon و Non-Daemon
+
+در این سناریو دو Process به صورت همزمان اجرا می‌شوند.
+Process اول به عنوان daemon اجرا می‌شود و با پایان برنامه اصلی متوقف می‌شود.
+Process دوم به صورت Non-Daemon اجرا شده و برنامه تا پایان آن صبر می‌کند.
+
+در نتیجه خروجی Process غیر دیمون کامل نمایش داده می‌شود،
+اما Process دیمون ممکن است قبل از اتمام کامل متوقف شود
+و فقط بخشی از خروجی آن دیده شود.
+"""
     }
 
-
-
 def foo_daemon(output_queue):
-    """
-    تابع برای سناریو daemon که بسته به نوع پراسس
-    اعداد متفاوتی چاپ می‌کند
-    """
     name = multiprocessing.current_process().name
     output_queue.put(f"Starting {name}")
 
@@ -96,19 +81,8 @@ def foo_daemon(output_queue):
 
 
 def scenario_2():
-    """
-    سناریو 2: تأثیر daemon=True
-
-    ساختار:
-    - پراسس اول: daemon_process (daemon=True)
-    - پراسس دوم: non_daemon_process (daemon=False)
-    - daemon_process اعداد 0-4 را با تاخیر بیشتر چاپ می‌کند
-    - non_daemon_process اعداد 5-9 را با تاخیر کمتر چاپ می‌کند
-    - daemon_process با اتمام برنامه اصلی قطع می‌شود
-    """
     output_queue = multiprocessing.Queue()
 
-    # ساخت پراسس‌ها
     daemon_process = multiprocessing.Process(
         name='daemon_process',
         target=foo_daemon,
@@ -123,17 +97,14 @@ def scenario_2():
     )
     non_daemon_process.daemon = False
 
-    # شروع همزمان
     daemon_process.start()
     non_daemon_process.start()
 
-    # فقط منتظر non-daemon می‌مانیم
     non_daemon_process.join()
 
-    # کمی صبر می‌کنیم تا daemon هم کمی کار کند
+    # a little wait for working daemon
     time.sleep(0.1)
 
-    # جمع‌آوری خروجی‌ها
     outputs = []
     while not output_queue.empty():
         outputs.append(output_queue.get())
@@ -142,14 +113,31 @@ def scenario_2():
 
     return {
         'output': output_text,
-        'explanation': 'daemon_process با اتمام برنامه اصلی قطع می‌شود و کارش ناقص می‌ماند، در حالی که non_daemon_process کامل اجرا می‌شود'
+        'explanation': '''
+        در این سناریو دو Process ایجاد می‌شوند
+که یکی از آن‌ها به صورت Daemon و
+دیگری به صورت عادی اجرا می‌شود.
+
+Process عادی تا پایان کامل اجرای خود
+به کار ادامه می‌دهد و Process اصلی
+منتظر اتمام آن باقی می‌ماند.
+
+در مقابل، Process Daemon وابسته به عمر
+برنامه اصلی است و تضمینی برای تکمیل
+تمام وظایف خود ندارد.
+
+به محض پایان یافتن Processهای غیر Daemon
+و خاتمه برنامه اصلی، Process Daemon
+ممکن است متوقف شود.
+
+این سناریو تفاوت میان Processهای عادی
+و Daemon را نشان داده و کاربرد Daemonها
+در وظایف پس‌زمینه را توضیح می‌دهد.
+        '''
     }
 
 
 def foo_lock(output_queue, lock):
-    """
-    تابع برای سناریو Lock که از قفل برای همگام‌سازی استفاده می‌کند
-    """
     name = multiprocessing.current_process().name
 
     with lock:
@@ -168,21 +156,9 @@ def foo_lock(output_queue, lock):
 
 
 def scenario_3():
-    """
-    سناریو 3: استفاده از Lock برای همگام‌سازی
-
-    ساختار:
-    - پراسس اول: process_A (daemon=False)
-    - پراسس دوم: process_B (daemon=False)
-    - استفاده از Lock برای اطمینان از اجرای ترتیبی
-    - process_A اعداد 0-4 را چاپ می‌کند
-    - process_B اعداد 5-9 را چاپ می‌کند
-    - خروجی‌ها بدون تداخل و پشت سر هم هستند
-    """
     output_queue = multiprocessing.Queue()
     lock = multiprocessing.Lock()
 
-    # ساخت پراسس‌ها
     process_A = multiprocessing.Process(
         name='process_A',
         target=foo_lock,
@@ -197,15 +173,12 @@ def scenario_3():
     )
     process_B.daemon = False
 
-    # شروع همزمان
     process_A.start()
     process_B.start()
 
-    # منتظر اتمام همه
     process_A.join()
     process_B.join()
 
-    # جمع‌آوری خروجی‌ها
     outputs = []
     while not output_queue.empty():
         outputs.append(output_queue.get())
@@ -214,7 +187,25 @@ def scenario_3():
 
     return {
         'output': output_text,
-        'explanation': 'با استفاده از Lock، هر پراسس تمام کارش را قبل از شروع پراسس دیگر انجام می‌دهد - خروجی‌ها بدون تداخل هستند'
+        'explanation': '''
+        در این سناریو دو Process به صورت همزمان
+ایجاد می‌شوند اما برای دسترسی به بخش
+مشترک برنامه از یک Lock استفاده می‌کنند.
+
+هر Process قبل از شروع عملیات خود
+باید Lock را در اختیار بگیرد.
+
+تا زمانی که یک Process مشغول اجرا است،
+Process دیگر اجازه ورود به بخش محافظت‌شده
+را نخواهد داشت.
+
+در نتیجه خروجی هر Process به صورت کامل
+و بدون تداخل با Process دیگر تولید می‌شود.
+
+این روش برای جلوگیری از شرایط رقابتی
+(Race Condition) و محافظت از منابع مشترک
+در برنامه‌های چندپردازه‌ای مورد استفاده قرار می‌گیرد.
+        '''
     }
 
 
