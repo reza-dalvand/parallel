@@ -5,55 +5,85 @@ class MyProcess(multiprocessing.Process):
         return f'called run method by {self.name}'
 
 def scenario_1():
-    """سناریو اول: Defining processes in a subclass"""
     outputs = []
 
-    # ایجاد و اجرای 10 پراسس از نوع MyProcess
     processes = []
     for i in range(10):
         process = MyProcess()
         processes.append(process)
         process.start()
 
-    # جمع‌آوری خروجی‌ها و join کردن پراسس‌ها
     for process in processes:
         process.join()
         outputs.append(f'called run method by {process.name}')
 
-    # تبدیل لیست به رشته
     output_text = "\n".join(outputs)
 
     return {
         'output': output_text,
-        'explanation': 'سناریو اول: ایجاد یک کلاس سفارشی از Process با override کردن متد run(). ده نمونه از این کلاس ساخته و به صورت موازی اجرا می‌شوند. هر پراسس نام خود را چاپ می‌کند.'
+        'explanation': '''
+        در این سناریو یک کلاس سفارشی از
+multiprocessing.Process
+ایجاد می‌شود و متد run() در آن
+بازنویسی (Override) می‌گردد.
+
+سپس ۱۰ Process از این کلاس ساخته شده
+و به صورت مستقل اجرا می‌شوند.
+
+هر Process هنگام اجرا، متد run()
+خود را فراخوانی کرده و نام Process
+را در خروجی نمایش می‌دهد.
+
+پس از شروع اجرای Processها،
+برنامه اصلی با استفاده از join()
+منتظر پایان همه آن‌ها می‌ماند.
+
+این سناریو نحوه ساخت Processهای سفارشی
+و استفاده از برنامه‌نویسی شیءگرا
+در multiprocessing را نشان می‌دهد.
+        '''
     }
 
 
 def scenario_2():
-    """سناریو دوم: تغییر ترتیب اجرا - ابتدا همه start، سپس همه join"""
     outputs = []
 
-    # ایجاد 5 پراسس
     processes = []
     for i in range(5):
         process = MyProcess()
         processes.append(process)
 
-    # ابتدا همه پراسس‌ها را start می‌کنیم
     for process in processes:
         process.start()
 
-    # سپس همه را join می‌کنیم
     for process in processes:
         process.join()
         outputs.append(f'called run method by {process.name}')
 
-    # تبدیل لیست به رشته
     output_text = "\n".join(outputs)
 
     return {
         'output': output_text,
-        'explanation': 'سناریو دوم: پنج پراسس ایجاد می‌شوند. ابتدا همه پراسس‌ها start می‌شوند (اجرای موازی واقعی) و سپس همه join می‌شوند. این روش باعث می‌شود پراسس‌ها واقعاً به صورت همزمان اجرا شوند و ترتیب خروجی ممکن است متفاوت باشد.'
+        'explanation': '''
+        در این سناریو چند Process ایجاد می‌شوند،
+اما برخلاف اجرای ترتیبی، ابتدا همه Processها
+با استفاده از start() آغاز به کار می‌کنند.
+
+پس از شروع اجرای تمامی Processها،
+برنامه اصلی با استفاده از join()
+منتظر پایان آن‌ها می‌ماند.
+
+به دلیل اینکه همه Processها پیش از
+فراخوانی join() اجرا شده‌اند،
+امکان پردازش همزمان میان آن‌ها وجود دارد.
+
+این روش یکی از رایج‌ترین الگوهای
+اجرای موازی در multiprocessing است
+و باعث استفاده بهتر از منابع سیستم می‌شود.
+
+این سناریو تفاوت میان اجرای ترتیبی
+و اجرای موازی Processها را نمایش می‌دهد.
+        '''
     }
 
 
@@ -67,10 +97,8 @@ class MyProcessWithArg(multiprocessing.Process):
 
 
 def scenario_3():
-    """سناریو سوم: ارسال آرگومان به پراسس"""
     outputs = []
 
-    # ایجاد و اجرای 10 پراسس با مقادیر مختلف
     processes = []
     for i in range(10):
         value = (i + 1) * 100  # 100, 200, 300, ..., 1000
@@ -78,15 +106,33 @@ def scenario_3():
         processes.append(process)
         process.start()
 
-    # جمع‌آوری خروجی‌ها و join کردن پراسس‌ها
     for process in processes:
         process.join()
         outputs.append(f'called run method by {process.name} with value {process.value}')
 
-    # تبدیل لیست به رشته
     output_text = "\n".join(outputs)
 
     return {
         'output': output_text,
-        'explanation': 'سناریو سوم: کلاس MyProcessWithArg از Process ارث‌بری می‌کند و یک پارامتر عددی دریافت می‌کند. ده پراسس با مقادیر 100 تا 1000 ایجاد می‌شوند. هر پراسس نام خود و مقدار دریافتی را چاپ می‌کند. این سناریو نحوه ارسال آرگومان به پراسس‌های سفارشی را نشان می‌دهد.'
+        'explanation': '''
+        در این سناریو یک کلاس سفارشی از Process
+تعریف می‌شود که هنگام ایجاد، یک مقدار
+به عنوان آرگومان دریافت می‌کند.
+
+این مقدار در سازنده کلاس ذخیره شده
+و هنگام اجرای متد run()
+در اختیار Process قرار می‌گیرد.
+
+سپس چندین Process با مقادیر مختلف
+ایجاد و اجرا می‌شوند تا هر Process
+بتواند داده مخصوص به خود را پردازش کند.
+
+پس از پایان اجرای Processها،
+برنامه اصلی با استفاده از join()
+منتظر اتمام همه آن‌ها می‌ماند.
+
+این سناریو نحوه ارسال داده به Processهای
+سفارشی و استفاده از پارامترهای اختصاصی
+در زمان ایجاد Process را نشان می‌دهد.
+        '''
     }

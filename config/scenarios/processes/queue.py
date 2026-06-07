@@ -4,8 +4,6 @@ import time
 
 
 class Producer(multiprocessing.Process):
-    """کلاس تولیدکننده که آیتم‌ها را به صف اضافه می‌کند"""
-
     def __init__(self, queue, output_queue, count=5):
         multiprocessing.Process.__init__(self)
         self.queue = queue
@@ -22,8 +20,6 @@ class Producer(multiprocessing.Process):
 
 
 class Consumer(multiprocessing.Process):
-    """کلاس مصرف‌کننده که آیتم‌ها را از صف خارج می‌کند"""
-
     def __init__(self, queue, output_queue, expected_items=5):
         multiprocessing.Process.__init__(self)
         self.queue = queue
@@ -44,118 +40,147 @@ class Consumer(multiprocessing.Process):
 
 
 def scenario_1():
-    """سناریو اول: یک Producer و یک Consumer - الگوی پایه"""
-
-    # ایجاد صف مشترک برای داده‌ها
     queue = multiprocessing.Queue()
-
-    # ایجاد صف برای جمع‌آوری خروجی‌ها
     output_queue = multiprocessing.Queue()
 
-    # ایجاد یک تولیدکننده و یک مصرف‌کننده
     process_producer = Producer(queue, output_queue, count=5)
     process_consumer = Consumer(queue, output_queue, expected_items=5)
 
-    # شروع پراسس‌ها
     process_producer.start()
     process_consumer.start()
 
-    # انتظار برای اتمام پراسس‌ها
     process_producer.join()
     process_consumer.join()
 
-    # جمع‌آوری تمام خروجی‌ها از صف
     output_lines = []
     while not output_queue.empty():
         output_lines.append(output_queue.get())
 
-    # ترکیب خروجی‌ها به صورت رشته
     output = "\n".join(output_lines)
 
     return {
         'output': output,
-        'explanation': 'سناریو اول: الگوی پایه Producer-Consumer. یک Producer پنج آیتم تولید می‌کند و یک Consumer آن‌ها را مصرف می‌کند.'
+        'explanation': '''
+        در این سناریو یک Process تولیدکننده (Producer)
+و یک Process مصرف‌کننده (Consumer)
+به صورت همزمان ایجاد و اجرا می‌شوند.
+
+Producer تعدادی داده تصادفی تولید کرده
+و آن‌ها را در یک Queue مشترک قرار می‌دهد.
+
+Consumer به صورت مداوم Queue را بررسی کرده
+و پس از دریافت هر داده، آن را از Queue خارج می‌کند.
+
+در طول اجرا، Producer مسئول افزودن داده‌ها
+و Consumer مسئول پردازش و حذف آن‌ها است.
+
+این سناریو ساده‌ترین شکل استفاده از Queue
+برای تبادل داده میان Processها را نمایش می‌دهد
+و مفهوم Producer-Consumer را در سطح Processها
+معرفی می‌کند.
+        '''
     }
 
 
 def scenario_2():
-    """سناریو دوم: چند Consumer با یک Producer - الگوی توزیع کار"""
-
-    # ایجاد صف مشترک برای داده‌ها
     queue = multiprocessing.Queue()
 
-    # ایجاد صف برای جمع‌آوری خروجی‌ها
     output_queue = multiprocessing.Queue()
 
-    # ایجاد یک تولیدکننده و سه مصرف‌کننده
     process_producer = Producer(queue, output_queue, count=15)
     process_consumer1 = Consumer(queue, output_queue, expected_items=5)
     process_consumer2 = Consumer(queue, output_queue, expected_items=5)
     process_consumer3 = Consumer(queue, output_queue, expected_items=5)
 
-    # شروع پراسس‌ها
     process_producer.start()
     process_consumer1.start()
     process_consumer2.start()
     process_consumer3.start()
 
-    # انتظار برای اتمام پراسس‌ها
     process_producer.join()
     process_consumer1.join()
     process_consumer2.join()
     process_consumer3.join()
 
-    # جمع‌آوری تمام خروجی‌ها از صف
     output_lines = []
     while not output_queue.empty():
         output_lines.append(output_queue.get())
 
-    # ترکیب خروجی‌ها به صورت رشته
     output = "\n".join(output_lines)
 
     return {
         'output': output,
-        'explanation': 'سناریو دوم: الگوی توزیع کار (Load Balancing). یک Producer پانزده آیتم تولید می‌کند و سه Consumer به صورت موازی آیتم‌ها را مصرف می‌کنند.'
+        'explanation': '''
+        در این سناریو یک Process تولیدکننده
+و سه Process مصرف‌کننده به صورت همزمان اجرا می‌شوند.
+
+Producer مجموعه‌ای از داده‌ها را تولید کرده
+و در Queue مشترک قرار می‌دهد.
+
+هر Consumer به صورت مستقل از Queue
+داده دریافت کرده و آن را پردازش می‌کند.
+
+به دلیل استفاده از Queue مشترک،
+داده‌ها میان Consumerها تقسیم شده
+و هر آیتم تنها توسط یکی از آن‌ها مصرف می‌شود.
+
+در نتیجه بار پردازش میان چند Consumer
+توزیع شده و سرعت انجام کار افزایش می‌یابد.
+
+این الگو در سیستم‌های پردازش موازی،
+سامانه‌های صف پیام و معماری‌های توزیع‌شده
+برای متعادل‌سازی بار پردازشی کاربرد فراوان دارد.
+        '''
     }
 
 
 def scenario_3():
-    """سناریو سوم: چند Producer با یک Consumer - الگوی جمع‌آوری"""
-
-    # ایجاد صف مشترک برای داده‌ها
     queue = multiprocessing.Queue()
-
-    # ایجاد صف برای جمع‌آوری خروجی‌ها
     output_queue = multiprocessing.Queue()
 
-    # ایجاد سه تولیدکننده و یک مصرف‌کننده
     process_producer1 = Producer(queue, output_queue, count=5)
     process_producer2 = Producer(queue, output_queue, count=5)
     process_producer3 = Producer(queue, output_queue, count=5)
     process_consumer = Consumer(queue, output_queue, expected_items=15)
 
-    # شروع پراسس‌ها
     process_producer1.start()
     process_producer2.start()
     process_producer3.start()
     process_consumer.start()
 
-    # انتظار برای اتمام پراسس‌ها
     process_producer1.join()
     process_producer2.join()
     process_producer3.join()
     process_consumer.join()
 
-    # جمع‌آوری تمام خروجی‌ها از صف
     output_lines = []
     while not output_queue.empty():
         output_lines.append(output_queue.get())
 
-    # ترکیب خروجی‌ها به صورت رشته
     output = "\n".join(output_lines)
 
     return {
         'output': output,
-        'explanation': 'سناریو سوم: الگوی جمع‌آوری (Aggregation). سه Producer هر کدام پنج آیتم تولید می‌کنند و یک Consumer همه پانزده آیتم را پردازش می‌کند.'
+        'explanation': '''
+        در این سناریو سه Process تولیدکننده
+و یک Process مصرف‌کننده به صورت همزمان اجرا می‌شوند.
+
+هر Producer داده‌های مخصوص به خود را تولید کرده
+و در Queue مشترک قرار می‌دهد.
+
+تمام داده‌های تولیدشده توسط Producerهای مختلف
+در یک صف واحد جمع‌آوری می‌شوند.
+
+Consumer تمامی داده‌های موجود در Queue را
+به ترتیب دریافت و پردازش می‌کند.
+
+این ساختار امکان تجمیع داده‌های تولیدشده
+از چند منبع مختلف را فراهم می‌کند
+و Consumer نقش نقطه مرکزی پردازش را بر عهده دارد.
+
+این الگو در سامانه‌های جمع‌آوری لاگ،
+پردازش رویدادها، دریافت داده از چند حسگر
+و سیستم‌های پردازش متمرکز بسیار رایج است.
+        '''
     }
 

@@ -20,8 +20,6 @@ def test_without_barrier(output_queue):
 
 
 def scenario_1():
-    """سناریو اول: Barrier - همگام‌سازی دو پراسس با Barrier"""
-
     output_queue = multiprocessing.Queue()
     synchronizer = Barrier(2)
     serializer = Lock()
@@ -48,17 +46,30 @@ def scenario_1():
 
     return {
         'output': "\n".join(output_lines),
-        'explanation': (
-            'سناریو اول: همگام‌سازی با Barrier. '
-            'پراسس‌های p1 و p2 با Barrier منتظر هم می‌مانند و همزمان آزاد می‌شوند، '
-            'در حالی که p3 و p4 بدون هیچ همگام‌سازی‌ای اجرا می‌شوند.'
-        )
+        'explanation': '''
+        در این سناریو چهار Process به صورت همزمان
+ایجاد و اجرا می‌شوند.
+
+دو Process اول از یک Barrier مشترک
+استفاده می‌کنند و پس از رسیدن به نقطه تعیین‌شده،
+منتظر Process دیگر باقی می‌مانند.
+
+تنها زمانی که هر دو Process به Barrier برسند،
+مانع برداشته شده و هر دو به صورت همزمان
+به اجرای ادامه برنامه می‌پردازند.
+
+در مقابل، دو Process دیگر هیچ Barrierای
+ندارند و بدون انتظار برای سایر Processها
+اجرای خود را ادامه می‌دهند.
+
+این سناریو نشان می‌دهد که چگونه Barrier
+می‌تواند برای هماهنگ‌سازی چند Process
+در یک نقطه مشخص از اجرای برنامه مورد استفاده قرار گیرد.
+        '''
     }
 
 
-# ─────────────────────────────────────────
-# سناریو ۲: Semaphore
-# ─────────────────────────────────────────
+# Semaphore
 
 def access_shared_resource(semaphore, output_queue):
     name = multiprocessing.current_process().name
@@ -71,8 +82,6 @@ def access_shared_resource(semaphore, output_queue):
 
 
 def scenario_2():
-    """سناریو دوم: Semaphore - محدود کردن دسترسی همزمان به حداکثر ۲ پراسس"""
-
     output_queue = multiprocessing.Queue()
     semaphore = Semaphore(2)  # حداکثر ۲ پراسس همزمان
 
@@ -94,25 +103,37 @@ def scenario_2():
 
     return {
         'output': "\n".join(output_lines),
-        'explanation': (
-            'سناریو دوم: همگام‌سازی با Semaphore. '
-            'حداکثر ۲ پراسس می‌توانند همزمان به منبع مشترک دسترسی داشته باشند. '
-            'p1 و p2 همزمان وارد می‌شوند؛ p3 و p4 باید صبر کنند تا یکی از آن‌ها آزاد شود.'
-        )
+        'explanation': '''
+        در این سناریو چهار Process به صورت همزمان
+برای دسترسی به یک منبع مشترک تلاش می‌کنند.
+
+برای مدیریت این دسترسی از یک Semaphore
+با ظرفیت دو استفاده شده است.
+
+در نتیجه حداکثر دو Process می‌توانند
+به طور همزمان وارد بخش بحرانی برنامه شوند
+و از منبع مشترک استفاده کنند.
+
+سایر Processها تا زمانی که یکی از
+Processهای فعال منبع را آزاد نکند،
+در حالت انتظار باقی می‌مانند.
+
+این روش برای محدود کردن تعداد دسترسی‌های همزمان
+به منابعی مانند پایگاه داده، فایل‌ها،
+اتصالات شبکه یا سرویس‌های اشتراکی کاربرد دارد.
+        '''
     }
 
 
-# ─────────────────────────────────────────
-# سناریو ۳: Event
-# ─────────────────────────────────────────
+# Event
 
 def producer(event, output_queue):
     name = multiprocessing.current_process().name
     now = time()
     output_queue.put("process %s ----> %s  [started, preparing data...]" % (
         name, datetime.fromtimestamp(now)))
-    sleep(2)  # شبیه‌سازی آماده‌سازی داده
-    event.set()  # سیگنال به همه consumers
+    sleep(2)
+    event.set()  # send signals to consumers
     now = time()
     output_queue.put("process %s ----> %s  [signal sent]" % (
         name, datetime.fromtimestamp(now)))
@@ -120,15 +141,13 @@ def producer(event, output_queue):
 
 def consumer(event, output_queue):
     name = multiprocessing.current_process().name
-    event.wait()  # بلاک تا دریافت سیگنال
+    event.wait()  # block and wait to receive signale
     now = time()
     output_queue.put("process %s ----> %s  [received signal, started]" % (
         name, datetime.fromtimestamp(now)))
 
 
 def scenario_3():
-    """سناریو سوم: Event - سیگنال‌دهی از یک پراسس به بقیه"""
-
     output_queue = multiprocessing.Queue()
     event = Event()
 
@@ -150,10 +169,25 @@ def scenario_3():
 
     return {
         'output': "\n".join(output_lines),
-        'explanation': (
-            'سناریو سوم: همگام‌سازی با Event. '
-            'p1 به عنوان producer داده را آماده می‌کند و سیگنال می‌دهد. '
-            'p2، p3 و p4 به عنوان consumer منتظر سیگنال می‌مانند و پس از دریافت آن همزمان شروع می‌کنند.'
-        )
+        'explanation': '''
+        در این سناریو یک Process در نقش Producer
+و سه Process در نقش Consumer اجرا می‌شوند.
+
+Consumerها در ابتدای کار با استفاده از Event
+در حالت انتظار قرار می‌گیرند و اجازه ادامه اجرا ندارند.
+
+Producer ابتدا بخشی از پردازش خود را انجام داده
+و پس از آماده شدن داده‌ها،
+با فراخوانی متد set() سیگنالی برای سایر Processها ارسال می‌کند.
+
+پس از دریافت این سیگنال،
+تمام Consumerها به صورت همزمان از حالت انتظار خارج شده
+و اجرای خود را آغاز می‌کنند.
+
+این سناریو کاربرد Event را در هماهنگ‌سازی Processها
+و اطلاع‌رسانی وقوع یک رویداد مشترک نمایش می‌دهد
+و برای پیاده‌سازی الگوهای Producer-Consumer،
+آماده‌سازی داده و شروع هماهنگ وظایف بسیار مناسب است.
+        '''
     }
 
