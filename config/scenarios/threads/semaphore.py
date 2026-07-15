@@ -128,7 +128,7 @@ def scenario_2():
 
 
 # تولید کننده 2 مصرف کننده 2 هر کدام 4 آیتم تولید و مصرف میکنند (مجموع 16)
-# +1 +1 (clock)
+# +1 +1 | (clock)
 #    -1
 def scenario_3():
     output_buffer = io.StringIO()

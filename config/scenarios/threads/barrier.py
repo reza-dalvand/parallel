@@ -3,6 +3,7 @@ import time
 import random
 import io
 
+# Huey reached, Louie reached, ...
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -13,10 +14,13 @@ def scenario_1():
     def runner():
         name = runners.pop()
         sleep_time = random.randrange(2, 5)
+
         time.sleep(sleep_time)
         arrival_time = time.strftime('%a %b %d %H:%M:%S %Y')
+
         message = f'{name} reached the barrier at: {arrival_time}'
         output_buffer.write(message + '\n')
+
         finish_line.wait()
 
     output_buffer.write('START RACE!!!!\n')
@@ -54,12 +58,13 @@ Barrier باعث می‌شود هیچ Threadی نتواند
 
 
 
-#Scenario 2: Multiple Phases with Barrier
+# Multiple Phases with Barrier
+# 2, 1 - 1,2 , ...
 def scenario_2():
     output_buffer = io.StringIO()
 
-    num_workers = 3
-    num_phases = 3
+    num_workers = 2
+    num_phases = 2
 
     barrier = threading.Barrier(num_workers)
 
@@ -86,10 +91,6 @@ def scenario_2():
                 f'Worker-{worker_id} entering next phase\n'
             )
 
-    output_buffer.write(
-        '=== Starting Multi-Phase Processing ===\n\n'
-    )
-
     threads = []
 
     for i in range(num_workers):
@@ -99,10 +100,6 @@ def scenario_2():
 
     for t in threads:
         t.join()
-
-    output_buffer.write(
-        '\n=== All Phases Completed ===\n'
-    )
 
     return {
         'output': output_buffer.getvalue(),
@@ -130,7 +127,7 @@ def scenario_2():
 
 
 #Scenario 3: Barrier with Action
-
+# clock
 def scenario_3():
     output_buffer = io.StringIO()
 
@@ -142,16 +139,14 @@ def scenario_3():
         with results_lock:
             total = sum(results)
             avg = total / len(results)
-            output_buffer.write(f'\n--- Barrier Action ---\n')
             output_buffer.write(f'Total: {total}, Average: {avg:.2f}\n')
-            output_buffer.write(f'--- End Action ---\n\n')
             results.clear()
 
     barrier = threading.Barrier(num_workers, action=collect_results)
 
     def worker(worker_id):
-        for round_num in range(3):
-            time.sleep(random.uniform(0.3, 1.0))
+        for round_num in range(2):
+            time.sleep(random.uniform(0.3, 1.0)) # اینجا ممکن نخ دوم از اولی جلو بزنه
             result = random.randint(10, 100)
 
             with results_lock:
@@ -162,7 +157,6 @@ def scenario_3():
 
             barrier.wait()
 
-    output_buffer.write('=== Starting Computation ===\n\n')
 
     threads = []
     for i in range(num_workers):
