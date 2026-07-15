@@ -69,6 +69,10 @@ def scenario_1():
     }
 
 
+
+
+
+
 # Semaphore
 
 def access_shared_resource(semaphore, output_queue):

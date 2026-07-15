@@ -3,6 +3,7 @@ import time
 import threading
 import io
 
+#یکی تولید یکی مصرف
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -84,6 +85,8 @@ Event در اینجا نقش یک مکانیزم
 '''
     }
 
+
+# 3 تولید کننده 1 مصرف کننده که هر بار یکی تولید یکی مصرف میشه
 def scenario_2():
     output_buffer = io.StringIO()
 
@@ -94,64 +97,43 @@ def scenario_2():
     event = threading.Event()
 
     def producer(worker_id):
-
         for i in range(3):
-
             time.sleep(
                 random.uniform(0.5, 1.5)
             )
-
             item = random.randint(1, 100)
-
             with lock:
-
                 items.append(item)
-
                 output_buffer.write(
                     f'Producer-{worker_id} produced {item}\n'
                 )
-
             event.set()
 
     def consumer():
-
         consumed = 0
-
         while consumed < 9:
-
             event.wait()
-
             with lock:
-
                 while items:
-
                     item = items.pop(0)
-
                     consumed += 1
-
                     output_buffer.write(
                         f'Consumer consumed {item}\n'
                     )
-
                 event.clear()
 
     threads = []
 
     for i in range(3):
-
         t = threading.Thread(
             target=producer,
             args=(i + 1,)
         )
-
         threads.append(t)
-
         t.start()
-
     consumer_thread = threading.Thread(
         target=consumer
     )
-
     consumer_thread.start()
 
     for t in threads:
@@ -180,6 +162,7 @@ def scenario_2():
 '''
     }
 
+# اول تولید کننده همه داده ها را تولید بعد مصرف کننده همه را مصرف میکند
 def scenario_3():
     output_buffer = io.StringIO()
 
@@ -206,19 +189,15 @@ def scenario_3():
         event.set()
 
     def consumer():
-
         output_buffer.write(
             'Waiting for data...\n'
         )
-
         event.wait()
-
         output_buffer.write(
             'Processing data...\n'
         )
 
         for item in results:
-
             output_buffer.write(
                 f'Processed item {item}\n'
             )

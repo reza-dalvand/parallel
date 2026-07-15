@@ -3,7 +3,7 @@ import time
 import random
 import io
 
-
+# condition جهت جلوگیری از بن‌بست بعد از ورود نخ به فانکشن
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -76,6 +76,7 @@ Condition در مسئله Producer-Consumer است.
 '''
     }
 
+# 3 مصرف کننده 1 تولید کننده
 def scenario_2():
 
     output_buffer = io.StringIO()
@@ -166,7 +167,7 @@ def scenario_2():
 '''
     }
 
-
+# 1 تولید کننده 1 مصرف کننده با بافر
 def scenario_3():
 
     output_buffer = io.StringIO()

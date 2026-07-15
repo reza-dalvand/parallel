@@ -41,6 +41,14 @@ Pool وظیفه تقسیم داده‌ها میان Processهای موجود
     }
 
 
+
+
+
+
+
+
+
+
 def scenario_2():
     inputs = list(range(0, 100))
 

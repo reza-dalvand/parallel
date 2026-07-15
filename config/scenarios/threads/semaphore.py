@@ -4,6 +4,10 @@ import random
 import io
 from datetime import datetime
 
+
+# 10 producer 10 consumer 
+# +1 +1 +1 ...
+# -1 -1 -1 ...
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -22,7 +26,7 @@ def scenario_1():
 
     def producer():
         thread_name = threading.current_thread().name
-        time.sleep(3)
+        time.sleep(2)
         item[0] = random.randint(0, 1000)
         log_message(thread_name, 'INFO', f'Producer notify: item number {item[0]}')
         semaphore.release()
@@ -56,7 +60,9 @@ def scenario_1():
 '''
 }
 
-
+# 5 producer  consumer 1
+# +1 +1 +1 ...
+# -1 -1 -1 ...
 def scenario_2():
     output_buffer = io.StringIO()
     semaphore = threading.Semaphore(0)
@@ -73,12 +79,10 @@ def scenario_2():
 
         semaphore.release()  # به consumer اطلاع می‌دهد که یک آیتم جدید آماده است
 
-    def consumer(total_items):
+    def consumer(total_items): #total_items = num_producers < 5
         consumed = 0
-        output_buffer.write(f"[Consumer] Waiting for {total_items} items...\n")
-
         while consumed < total_items:
-            semaphore.acquire()  # منتظر یک آیتم جدید
+            semaphore.acquire()  
 
             with items_lock:
                 if items:
@@ -123,8 +127,9 @@ def scenario_2():
     }
 
 
-#Scenario 3: Bounded Buffer (Pool of Resources)
-
+# تولید کننده 2 مصرف کننده 2 هر کدام 4 آیتم تولید و مصرف میکنند (مجموع 16)
+# +1 +1 (clock)
+#    -1
 def scenario_3():
     output_buffer = io.StringIO()
 
@@ -136,35 +141,31 @@ def scenario_3():
 
     filled_slots = threading.Semaphore(0)
 
-    def producer(producer_id, num_items):
+    def producer(producer_id, num_items): #num_items = 4
         for i in range(num_items):
             item = random.randint(0, 100)
-
-            output_buffer.write(f"[Producer-{producer_id}] Trying to produce item {item}...\n")
-            empty_slots.acquire()  # منتظر یک فضای خالی
+            empty_slots.acquire() 
 
             with buffer_lock:
                 buffer.append(item)
                 output_buffer.write(f"[Producer-{producer_id}] Produced item {item}. Buffer: {buffer}\n")
 
-            filled_slots.release()  # اعلام اینکه یک آیتم جدید اضافه شده
+            filled_slots.release() 
             time.sleep(random.uniform(0.1, 0.3))
 
-    def consumer(consumer_id, num_items):
+    def consumer(consumer_id, num_items): #num_items = 4
         for i in range(num_items):
-            output_buffer.write(f"[Consumer-{consumer_id}] Waiting for an item...\n")
-            filled_slots.acquire()  # منتظر یک آیتم پر
+            filled_slots.acquire()
 
             with buffer_lock:
                 if buffer:
                     item = buffer.pop(0)
                     output_buffer.write(f"[Consumer-{consumer_id}] Consumed item {item}. Buffer: {buffer}\n")
 
-            empty_slots.release()  # اعلام اینکه یک فضا خالی شده
+            empty_slots.release()  
             time.sleep(random.uniform(0.2, 0.4))
 
-    # 2 producer، هر کدام 4 آیتم تولید می‌کنند
-    # 2 consumer، هر کدام 4 آیتم مصرف می‌کنند
+
     threads = []
 
     for i in range(2):

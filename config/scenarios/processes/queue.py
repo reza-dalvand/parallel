@@ -82,6 +82,9 @@ Consumer به صورت مداوم Queue را بررسی کرده
     }
 
 
+
+
+
 def scenario_2():
     queue = multiprocessing.Queue()
 

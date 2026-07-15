@@ -53,6 +53,7 @@ Barrier باعث می‌شود هیچ Threadی نتواند
     }
 
 
+
 #Scenario 2: Multiple Phases with Barrier
 def scenario_2():
     output_buffer = io.StringIO()

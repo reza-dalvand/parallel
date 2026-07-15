@@ -52,6 +52,9 @@ Processها را نمایش می‌دهد.
     }
 
 
+
+
+
 def myFunc2(i, output_queue):
     delay = random.uniform(0.1, 0.5)
 

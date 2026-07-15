@@ -10,7 +10,7 @@ from scenarios.threads import (
     barrier,
     event,
     condition,
-    queue
+    queue as thread_queue,
 )
 
 from scenarios.processes import (
@@ -35,7 +35,7 @@ SCENARIOS_MAP = {
         'barrier': barrier,
         'event': event,
         'condition': condition,
-        'queue': queue
+        'queue': thread_queue
     },
     'processes': {
         'spawning': spawning,

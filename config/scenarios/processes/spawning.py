@@ -59,6 +59,11 @@ def scenario_1():
     }
 
 
+
+
+
+
+
 def scenario_2():
     output_buffer = io.StringIO()
     queue = multiprocessing.Queue()

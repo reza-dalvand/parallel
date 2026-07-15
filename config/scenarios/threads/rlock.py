@@ -1,49 +1,33 @@
 import threading
 import time
+import random
 import io
 
+#این سناریو به صورت پینگ ‌پنگی کار میکنه یعنی ابتدا یک آیتم اضافه میشه و سپس یک آیتم حذف می‌شود
 class Box:
     def __init__(self, output_buffer):
         self.lock = threading.RLock()
         self.total_items = 0
         self.output_buffer = output_buffer
-        self.turn = 'add'  # 'add' or 'remove'
-        self.condition = threading.Condition(self.lock)
-        self.remover_done = False  # پرچم برای اعلام اتمام remover
 
     def execute(self, value):
         with self.lock:
             self.total_items += value
 
     def add(self):
-        with self.condition:
-            while self.turn != 'add' and not self.remover_done:
-                self.condition.wait()
-
+        with self.lock:
             self.execute(1)
-            self.turn = 'remove'
-            self.condition.notify_all()
 
     def remove(self):
-        with self.condition:
-            while self.turn != 'remove':
-                self.condition.wait()
-
+        with self.lock:
             self.execute(-1)
-            self.turn = 'add'
-            self.condition.notify_all()
-
-    def mark_remover_done(self):
-        with self.condition:
-            self.remover_done = True
-            self.condition.notify_all()
 
 
 def adder(box, items):
     box.output_buffer.write(f"N° {items} items to ADD\n")
     while items:
         box.add()
-        time.sleep(0.1)
+        time.sleep(1)
         items -= 1
         box.output_buffer.write(f"ADDED one item -->{items} item to ADD\n")
 
@@ -52,20 +36,17 @@ def remover(box, items):
     box.output_buffer.write(f"N° {items} items to REMOVE\n")
     while items:
         box.remove()
-        time.sleep(0.1)
+        time.sleep(1)
         items -= 1
         box.output_buffer.write(f"REMOVED one item -->{items} item to REMOVE\n")
-
-    # work done
-    box.mark_remover_done()
 
 
 def scenario_1():
     output_buffer = io.StringIO()
     box = Box(output_buffer)
 
-    add_count = 16
-    remove_count = 1
+    add_count = random.randint(10, 20)
+    remove_count = random.randint(1, 10)
 
     t1 = threading.Thread(target=adder, args=(box, add_count))
     t2 = threading.Thread(target=remover, args=(box, remove_count))
@@ -81,24 +62,20 @@ def scenario_1():
     return {
         'output': output_buffer.getvalue(),
         'explanation': '''
-در این سناریو دو Thread مستقل برای افزودن
-و حذف آیتم‌ها از یک منبع مشترک ایجاد می‌شوند.
+این سناریو به صورت پینگ‌پنگی کار می‌کند؛ یعنی ابتدا یک آیتم اضافه میشه و
+سپس یک آیتم حذف می‌شود. اما از آنجا که تعداد افزودن‌ها مثلا (۱۶) بیشتر از حذف‌ها
+است، به محض اینکه عملیات حذف تمام می‌شود، ترد حذف‌کننده به ترد افزاینده سیگنال
+می‌دهد تا بدون معطل شدن برای نوبت، تمام ۱۵ آیتم باقی‌مانده را یک‌جا و بدون
+قفل شدن (بن‌بست) وارد جعبه کند.
+            '''
+    }
 
-برای مدیریت دسترسی همزمان به داده‌ها
-از RLock و Condition استفاده شده است.
 
-ابتدا عملیات افزودن انجام می‌شود و سپس
-Thread حذف‌کننده اجازه اجرا پیدا می‌کند.
 
-پس از پایان عملیات حذف، Thread افزودن
-بدون ایجاد بن‌بست به کار خود ادامه می‌دهد.
 
-این ساختار نمونه‌ای از الگوی Producer-Consumer
-برای هماهنگی بین وظایف تولید و مصرف داده است.
 
-'''
-}
 
+# توی این سناریو 2 آیتم اضافه سپس 2 ایتم حذف میشه و این چرخه تا زمان تموم شدن آیتم ها ادامه داره
 
 class BoxAlternating:
     def __init__(self, output_buffer):
@@ -108,62 +85,49 @@ class BoxAlternating:
         self.turn = 'add'
         self.add_count = 0
         self.remove_count = 0
-        self.condition = threading.Condition(self.lock)
 
     def execute(self, value):
         with self.lock:
             self.total_items += value
 
     def add(self):
-        with self.condition:
-            while self.turn != 'add':
-                self.condition.wait()
-
+        with self.lock:
             self.execute(1)
             self.add_count += 1
-
             if self.add_count >= 2:
                 self.add_count = 0
                 self.turn = 'remove'
-                self.condition.notify_all()
 
     def remove(self):
-        with self.condition:
-            while self.turn != 'remove':
-                self.condition.wait()
-
+        with self.lock:
             self.execute(-1)
             self.remove_count += 1
-
             if self.remove_count >= 2:
                 self.remove_count = 0
                 self.turn = 'add'
-                self.condition.notify_all()
 
 
 def adder_alternating(box, items):
-    box.output_buffer.write(f"N° {items} items to ADD\n")
     while items:
-        box.add()
-        time.sleep(0.5)
-        items -= 1
-        box.output_buffer.write(f"ADDED one item --> {items} item to ADD\n")
+        if box.turn == 'add':
+            box.add()
+            time.sleep(0.5)
+            items -= 1
+            box.output_buffer.write(f"ADDED one item --> {items} item to ADD\n")
 
 
 def remover_alternating(box, items):
-    box.output_buffer.write(f"N° {items} items to REMOVE\n")
     while items:
-        box.remove()
-        time.sleep(0.5)
-        items -= 1
-        box.output_buffer.write(f"REMOVED one item --> {items} item to REMOVE\n")
-
+        if box.turn == 'remove':
+            box.remove()
+            time.sleep(0.5)
+            items -= 1
+            box.output_buffer.write(f"REMOVED one item --> {items} item to REMOVE\n")
 
 def scenario_2():
     output_buffer = io.StringIO()
     box = BoxAlternating(output_buffer)
 
-    # تعداد زوج برای الگوی 2-2
     add_count = 10
     remove_count = 10
 
@@ -176,8 +140,6 @@ def scenario_2():
     t1.join()
     t2.join()
 
-    output_buffer.write(f"\n=== Final total items in box: {box.total_items} ===\n")
-
     return {
         'output': output_buffer.getvalue(),
         'explanation': '''
@@ -188,15 +150,14 @@ def scenario_2():
 دو عملیات حذف داده می‌شود و این روند
 تا پایان اجرای برنامه ادامه پیدا می‌کند.
 
-برای کنترل ترتیب اجرا از Condition
-و متغیرهای شمارنده استفاده شده است.
-
 این روش باعث ایجاد تعادل میان عملیات تولید
 و مصرف شده و از اجرای نامنظم Threadها
 جلوگیری می‌کند.
         '''
     }
 
+# در این سناریو از event استفاده شده
+# اول سناریو ادد کارش رو شروع میکنه 10 ایتم اضافه و بعد با کمک event عملیات حذف کامل کارش رو انجام میده
 
 class BoxSequential:
     def __init__(self, output_buffer):
@@ -219,7 +180,6 @@ class BoxSequential:
 
 
 def adder_sequential(box, items):
-    box.output_buffer.write(f"N° {items} items to ADD\n")
     while items:
         box.add()
         time.sleep(0.3)
@@ -231,16 +191,12 @@ def adder_sequential(box, items):
 
 
 def remover_sequential(box, items):
-    # منتظر بمان تا همه addها تمام شوند
-    box.add_done.wait()
-
-    box.output_buffer.write(f"N° {items} items to REMOVE\n")
+    box.add_done.wait() # Wait for the adder to finish adding items
     while items:
         box.remove()
         time.sleep(0.3)
         items -= 1
         box.output_buffer.write(f"REMOVED one item --> {items} item to REMOVE\n")
-
 
 def scenario_3():
     output_buffer = io.StringIO()
@@ -257,8 +213,6 @@ def scenario_3():
 
     t1.join()
     t2.join()
-
-    output_buffer.write(f"\n=== Final total items in box: {box.total_items} ===\n")
 
     return {
         'output': output_buffer.getvalue(),
