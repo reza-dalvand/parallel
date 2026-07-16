@@ -78,7 +78,7 @@ def func2(output_queue):
     if name == 'daemon_process':
         for i in range(0, 5):
             output_queue.put(f'---> {i}')
-            time.sleep(0.15)  # تاخیر بیشتر جهت کشتن پراسس بعد از قبل از اتمام کار
+            time.sleep(0.15)  # تاخیر بیشتر جهت متوقف کردن پراسس قبل از اتمام کار
     else:
         for i in range(5, 10):
             output_queue.put(f'---> {i}')

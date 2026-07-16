@@ -1,5 +1,7 @@
 import multiprocessing
 import time
+import io
+
 
 def foo(output_queue, task_name, duration):
     output_queue.put(f"{task_name}: Starting...")
@@ -8,158 +10,296 @@ def foo(output_queue, task_name, duration):
         output_queue.put(f"{task_name}: Working... {i + 1}/{duration}")
     output_queue.put(f"{task_name}: Completed!")
 
+
+
+#django problem
+# تابع بالا اجرا نشده و پراسس متوقف میشود
 def scenario_1():
+
+    output_buffer = io.StringIO()
+
     output_queue = multiprocessing.Queue()
-    outputs = []  # لاگ‌های وضعیت پردازش
 
-    p = multiprocessing.Process(
+
+    process = multiprocessing.Process(
         target=foo,
-        args=(output_queue, "TerminateDemo", 10),
-        name="Process-1"
+        args=(output_queue, "TerminateProcess", 10),
+        name='Terminate_Process'
     )
-    p.daemon = False
 
-    outputs.append(f"Process before execution: {p} {p.is_alive()}")
 
-    p.start()
-    outputs.append(f"Process running: {p} {p.is_alive()}")
+    output_buffer.write(
+        f"Process before execution: {process} {process.is_alive()}\n" 
+    )
 
+
+    process.start()
+
+
+    output_buffer.write(
+        f"Process running: {process} {process.is_alive()}\n" #initial
+    )
+
+    # قبل از متوقف کردن مقداری اجرا شود
     time.sleep(2)
 
-    p.terminate()
-    outputs.append(f"Process terminated: {p} {p.is_alive()}")
 
-    p.join()
-    outputs.append(f"Process joined: {p} {p.is_alive()}")
-    outputs.append(f"Process exit code: {p.exitcode}")
+    process.terminate()
 
-    # استخراج دیتای داخل صف
-    queue_outputs = []
+    # اینجا فقط درخواست ارسال شده به سیستم عامل و هنوز پراسس متوقف نشده
+    output_buffer.write(
+        f"Process terminated: {process} {process.is_alive()}\n" #true 
+    )
+
+
+    process.join()
+
+    # پراسس متوقف میشه این قسمت
+    output_buffer.write(
+        f"Process joined: {process} {process.is_alive()}\n" #stopped
+    )
+
+
+    output_buffer.write(
+        f"Process exit code: {process.exitcode}\n\n"
+    )
+
+
     while not output_queue.empty():
-        queue_outputs.append(output_queue.get())
+
+        output_buffer.write(
+            output_queue.get() + '\n'
+        )
+
+
+    output_text = output_buffer.getvalue()
 
 
     return {
-        'output': "\n".join(outputs),
-        'explanation': '''
-        در این سناریو یک Process ایجاد می‌شود
-و پس از شروع اجرا، برای مدت کوتاهی
-به فعالیت خود ادامه می‌دهد.
 
-بعد از چند ثانیه، Process با استفاده از
-دستور terminate() به صورت اجباری
-متوقف می‌شود و فرصت تکمیل وظیفه خود
-را نخواهد داشت.
-        '''
+        "output": output_text,
+
+        "explanation": '''
+سناریو ۳: Terminating Process
+
+در این سناریو یک Process ایجاد می‌شود
+و یک تابع به عنوان Target آن اجرا می‌شود.
+
+Process پس از شروع، شروع به انجام کار کرده
+و تعدادی خروجی تولید می‌کند.
+
+پس از گذشت زمان مشخص، با استفاده از
+terminate() اجرای Process به صورت اجباری
+متوقف می‌شود.
+
+بعد از آن join() استفاده می‌شود تا Process
+به صورت کامل از سیستم‌عامل خارج شود.
+
+مقدار exitcode وضعیت پایان Process را نشان
+می‌دهد.
+
+مقدار منفی برای exitcode نشان‌دهنده این است
+که Process توسط یک Signal متوقف شده است.
+
+این روش زمانی استفاده می‌شود که بخواهیم
+یک Process طولانی یا گیرکرده را متوقف کنیم.
+'''
     }
 
+
+
+def func2(duration):
+    time.sleep(duration)
+
+# متوقف کردن پراسس های معیوب
 def scenario_2():
+
+    output_buffer = io.StringIO()
+
     output_queue = multiprocessing.Queue()
-    outputs = []
 
-    p_daemon = multiprocessing.Process(
-        target=foo,
-        args=(output_queue, "DaemonProcess", 5),
-        name="Process-Daemon"
+    processes = []
+
+    durations = [2, 5, 3]
+
+    for i, duration in enumerate(durations):
+
+        process = multiprocessing.Process(
+            target=func2,
+            args=(duration,),
+            name=f"Process-{i+1}"
+        )
+
+        processes.append(process)
+
+        output_buffer.write(
+            f"Starting {process.name}\n"
+        )
+
+        process.start()
+
+    time.sleep(4) # این زمان برای انجام پراسس 1 و 3 کافی است ولی 2 متوقف میشود
+
+    output_buffer.write(
+        "\nChecking running processes...\n"
     )
-    p_daemon.daemon = True
 
-    p_normal = multiprocessing.Process(
-        target=foo,
-        args=(output_queue, "NormalProcess", 3),
-        name="Process-Normal"
-    )
-    p_normal.daemon = False
+    for process in processes:
 
-    outputs.append(f"Daemon process before execution: {p_daemon} daemon={p_daemon.daemon} alive={p_daemon.is_alive()}")
-    outputs.append(f"Normal process before execution: {p_normal} daemon={p_normal.daemon} alive={p_normal.is_alive()}")
+        if process.is_alive():
 
-    p_daemon.start()
-    p_normal.start()
+            output_buffer.write(
+                f"{process.name} is still running -> terminate()\n"
+            )
 
-    outputs.append(f"Daemon process started: {p_daemon} alive={p_daemon.is_alive()}")
-    outputs.append(f"Normal process started: {p_normal} alive={p_normal.is_alive()}")
+            process.terminate()
 
-    p_normal.join()
+        else:
 
-    outputs.append(f"Normal process finished: {p_normal} alive={p_normal.is_alive()} exitcode={p_normal.exitcode}")
-    outputs.append(f"Daemon process status: {p_daemon} alive={p_daemon.is_alive()}")
+            output_buffer.write(
+                f"{process.name} already finished\n"
+            )
 
-    queue_outputs = []
+    output_buffer.write("\n")
+
+    for process in processes:
+
+        process.join()
+
+        output_buffer.write(
+            f"{process.name} | ExitCode={process.exitcode}\n"
+        )
+
+    output_buffer.write("\n")
+
     while not output_queue.empty():
-        queue_outputs.append(output_queue.get())
 
-    # ترکیب لاگ‌های وضعیت و خروجی‌های صف
-    final_output = "\n".join(outputs) + "\n\n--- Queue Output ---\n" + "\n".join(queue_outputs)
+        output_buffer.write(
+            output_queue.get() + '\n'
+        )
+
+    output_text = output_buffer.getvalue()
 
     return {
-        'output': final_output,
-        'explanation': '''
-        در این سناریو دو Process به صورت همزمان
-ایجاد و اجرا می‌شوند.
-یکی از Processها به عنوان Daemon
-و دیگری به عنوان Process عادی
-تعریف شده است.
-        '''
+
+        "output": output_text,
+
+        "explanation": '''
+سناریو ۳: Selective Process Termination
+
+در این سناریو چند Process
+به صورت همزمان اجرا می‌شوند.
+
+مدت زمان اجرای هر Process
+با دیگری متفاوت است.
+
+پس از گذشت مدت زمان مشخص،
+برنامه وضعیت تمامی Processها
+را بررسی می‌کند.
+
+Processهایی که کار خود را
+به پایان رسانده‌اند بدون تغییر
+باقی می‌مانند.
+
+در مقابل، Processهایی که
+هنوز در حال اجرا هستند،
+با استفاده از terminate()
+متوقف می‌شوند.
+
+این روش زمانی کاربرد دارد
+که تنها بخواهیم Processهای
+طولانی یا گیرکرده را متوقف کنیم
+و اجازه دهیم سایر Processها
+به صورت عادی پایان یابند.
+'''
     }
 
+def func3(duration):
+    time.sleep(duration)
+
+# Timeout Process Termination
 def scenario_3():
+
+    output_buffer = io.StringIO()
+
     output_queue = multiprocessing.Queue()
-    outputs = []
 
-    p_fast = multiprocessing.Process(
-        target=foo,
-        args=(output_queue, "FastProcess", 2),
-        name="Process-Fast"
+    process = multiprocessing.Process(
+        target=func3,
+        args=(10),
+        name="Timeout_Process"
     )
-    p_fast.daemon = False
 
-    outputs.append(f"Fast process before execution: {p_fast} {p_fast.is_alive()}")
-    p_fast.start()
-    outputs.append(f"Fast process started: {p_fast} {p_fast.is_alive()}")
-
-    p_fast.join(timeout=5)
-
-    if p_fast.is_alive():
-        outputs.append(f"Fast process timeout: {p_fast} still alive, terminating...")
-        p_fast.terminate()
-        p_fast.join()
-    else:
-        outputs.append(f"Fast process completed: {p_fast} alive={p_fast.is_alive()} exitcode={p_fast.exitcode}")
-
-    p_slow = multiprocessing.Process(
-        target=foo,
-        args=(output_queue, "SlowProcess", 10),
-        name="Process-Slow"
+    output_buffer.write(
+        f"Process before execution: {process} {process.is_alive()}\n"
     )
-    p_slow.daemon = False
 
-    outputs.append(f"\nSlow process before execution: {p_slow} {p_slow.is_alive()}")
-    p_slow.start()
-    outputs.append(f"Slow process started: {p_slow} {p_slow.is_alive()}")
+    process.start()
 
-    p_slow.join(timeout=3)
+    output_buffer.write(
+        f"Process running: {process} {process.is_alive()}\n"
+    )
 
-    if p_slow.is_alive():
-        outputs.append(f"Slow process timeout: {p_slow} still alive, terminating...")
-        p_slow.terminate()
-        p_slow.join()
-        outputs.append(f"Slow process terminated: {p_slow} alive={p_slow.is_alive()} exitcode={p_slow.exitcode}")
-    else:
-        outputs.append(f"Slow process completed: {p_slow} alive={p_slow.is_alive()} exitcode={p_slow.exitcode}")
+    process.join(timeout=3) #حداکثر 3 ثانیه منتظر می ماند تا پراسس به پایان برسد
 
-    queue_outputs = []
+    if process.is_alive():
+
+        output_buffer.write(
+            "Execution time exceeded -> Terminating process\n"
+        )
+
+        process.terminate()
+
+        output_buffer.write(
+            f"Process terminated: {process} {process.is_alive()}\n"
+        )
+
+        process.join() #اینجا دیگ پراسس تمام شده و منابع آزاد میشود
+
+    output_buffer.write(
+        f"Process joined: {process} {process.is_alive()}\n"
+    )
+
+    output_buffer.write(
+        f"Process exit code: {process.exitcode}\n\n"
+    )
+
     while not output_queue.empty():
-        queue_outputs.append(output_queue.get())
 
-    # ترکیب لاگ‌های وضعیت و خروجی‌های صف
-    final_output = "\n".join(outputs) + "\n\n--- Queue Output ---\n" + "\n".join(queue_outputs)
+        output_buffer.write(
+            output_queue.get() + '\n'
+        )
+
+    output_text = output_buffer.getvalue()
 
     return {
-        'output': final_output,
-        'explanation': '''
-        در این سناریو برای کنترل مدت زمان اجرای
-Processها از دستور join(timeout)
-استفاده می‌شود.
-        '''
+
+        "output": output_text,
+
+        "explanation": '''
+سناریو ۲: Terminating Process after Timeout
+
+در این سناریو یک Process ایجاد
+و اجرا می‌شود.
+
+برنامه با استفاده از
+join(timeout)
+مدت زمان مشخصی منتظر پایان اجرای
+Process باقی می‌ماند.
+
+اگر Process در این زمان
+به پایان نرسد،
+با استفاده از terminate()
+به صورت اجباری متوقف می‌شود.
+
+در پایان نیز با استفاده از
+join()
+منابع Process آزاد شده
+و وضعیت نهایی آن بررسی می‌شود.
+
+این روش برای جلوگیری از اجرای
+بیش از حد Processها
+و جلوگیری از گیر کردن برنامه
+کاربرد دارد.
+'''
     }
