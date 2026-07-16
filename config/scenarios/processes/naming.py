@@ -6,14 +6,12 @@ import time
 def myFunc(output_queue):
     name = multiprocessing.current_process().name
     output_queue.put(f'Starting process name = {name}')
-    time.sleep(0.5)
     output_queue.put(f'Exiting process name = {name}')
-
 
 def scenario_1():
     output_queue = multiprocessing.Queue()
 
-    p1 = multiprocessing.Process(name='myFunc process', target=myFunc, args=(output_queue,))
+    p1 = multiprocessing.Process(name='custom process', target=myFunc, args=(output_queue,))
     p2 = multiprocessing.Process(target=myFunc, args=(output_queue,))
 
     p1.start()
@@ -62,7 +60,8 @@ def myFunc2(i, output_queue):
     time.sleep(delay)
     output_queue.put(f'output from myFunc is :{i}')
 
-
+# Run 4 processes in parallel and wait for all to finish
+# Time
 def scenario_2():
     output_queue = multiprocessing.Queue()
 
@@ -112,19 +111,20 @@ def myFunc3(i, output_queue):
     time.sleep(0.5)
     output_queue.put(f'output from myFunc is :{i}')
 
-
+# دو پراسس در هر مرحله اجرا می‌شوند و پس از پایان، مرحله بعدی آغاز می‌شود
+# ترتیبی
 def scenario_3():
     BATCH_SIZE = 2
     output_queue = multiprocessing.Queue()
 
-    all_indices = list(range(6))  # [0, 1, 2, 3, 4, 5]
+    indices = [1, 2, 3, 4, 5, 6]
 
-    for i in range(0, len(all_indices), BATCH_SIZE):
-        batch_indices = all_indices[i:i + BATCH_SIZE]
+    for i in range(0, len(indices), BATCH_SIZE):
+        batch_indices = indices[i:i + BATCH_SIZE] #select 2 number form the indices
         batch_processes = []
 
-        for idx in batch_indices:
-            p = multiprocessing.Process(target=myFunc3, args=(idx, output_queue))
+        for index in batch_indices:
+            p = multiprocessing.Process(target=myFunc3, args=(index, output_queue))
             batch_processes.append(p)
             p.start()
 
