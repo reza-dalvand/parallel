@@ -3,7 +3,8 @@ import time
 import threading
 import io
 
-#یکی تولید یکی مصرف
+# +1 +1 +1...
+# -1 -1 -1 ...
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -86,7 +87,9 @@ Event در اینجا نقش یک مکانیزم
     }
 
 
-# 3 تولید کننده 1 مصرف کننده که هر بار یکی تولید یکی مصرف میشه
+# 3 producer 1 consumer 
+# +1 +1 +1 ...
+# -1 -1 -1 ...
 def scenario_2():
     output_buffer = io.StringIO()
 
@@ -98,15 +101,13 @@ def scenario_2():
 
     def producer(worker_id):
         for i in range(3):
-            time.sleep(
-                random.uniform(0.5, 1.5)
-            )
+            time.sleep(random.uniform(0.5, 1.5)) # مثلا ممکن نخ 2 از 1 زودتر آیتم تولید کنه
             item = random.randint(1, 100)
+
             with lock:
                 items.append(item)
-                output_buffer.write(
-                    f'Producer-{worker_id} produced {item}\n'
-                )
+                output_buffer.write(f'Producer-{worker_id} produced {item}\n')
+
             event.set()
 
     def consumer():
@@ -117,23 +118,17 @@ def scenario_2():
                 while items:
                     item = items.pop(0)
                     consumed += 1
-                    output_buffer.write(
-                        f'Consumer consumed {item}\n'
-                    )
+                    output_buffer.write(f'Consumer consumed {item}\n')
                 event.clear()
 
     threads = []
 
     for i in range(3):
-        t = threading.Thread(
-            target=producer,
-            args=(i + 1,)
-        )
+        t = threading.Thread(target=producer, args=(i + 1,))
         threads.append(t)
         t.start()
-    consumer_thread = threading.Thread(
-        target=consumer
-    )
+
+    consumer_thread = threading.Thread(target=consumer)
     consumer_thread.start()
 
     for t in threads:
@@ -162,7 +157,8 @@ def scenario_2():
 '''
     }
 
-# اول تولید کننده همه داده ها را تولید بعد مصرف کننده همه را مصرف میکند
+# 1 producer 1 consumer
+# +1 +1 +1 -1 -1 -1
 def scenario_3():
     output_buffer = io.StringIO()
 
@@ -172,9 +168,7 @@ def scenario_3():
 
     def producer():
 
-        output_buffer.write(
-            'Preparing data...\n'
-        )
+        output_buffer.write('Preparing data...\n')
 
         time.sleep(3)
 
@@ -182,33 +176,21 @@ def scenario_3():
 
             results.append(i)
 
-        output_buffer.write(
-            'Data preparation completed\n'
-        )
+        output_buffer.write('Data preparation completed\n')
 
         event.set()
 
     def consumer():
-        output_buffer.write(
-            'Waiting for data...\n'
-        )
+        output_buffer.write('Waiting for data...\n')
         event.wait()
-        output_buffer.write(
-            'Processing data...\n'
-        )
+        output_buffer.write('Processing data...\n')
 
         for item in results:
-            output_buffer.write(
-                f'Processed item {item}\n'
-            )
+            output_buffer.write(f'Processed item {item}\n')
 
-    producer_thread = threading.Thread(
-        target=producer
-    )
+    producer_thread = threading.Thread(target=producer)
 
-    consumer_thread = threading.Thread(
-        target=consumer
-    )
+    consumer_thread = threading.Thread(target=consumer)
 
     producer_thread.start()
     consumer_thread.start()

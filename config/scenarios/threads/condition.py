@@ -3,7 +3,9 @@ import time
 import random
 import io
 
-# condition جهت جلوگیری از بن‌بست بعد از ورود نخ به فانکشن
+# 1 producer 1 consumer
+# +1 +1 +1 
+# -1 -1 -1
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -12,39 +14,23 @@ def scenario_1():
 
     def producer():
         for i in range(5):
-
             time.sleep(2)
-
             item = random.randint(0, 100)
-
             with condition:
                 items.append(item)
-
-                output_buffer.write(
-                    f'Producer notify: item {item} appended\n'
-                )
-
+                output_buffer.write(f'Producer notify: item {item} appended\n')
                 condition.notify()
 
     def consumer():
-
         for i in range(5):
-
             with condition:
-
                 while len(items) == 0:
-
-                    output_buffer.write(
-                        'Consumer waiting...\n'
-                    )
-
+                    output_buffer.write('Consumer waiting...\n')
                     condition.wait()
 
                 item = items.pop(0)
 
-                output_buffer.write(
-                    f'Consumer notify: {item} popped\n'
-                )
+                output_buffer.write(f'Consumer notify: {item} popped\n')
 
     t1 = threading.Thread(target=producer)
     t2 = threading.Thread(target=consumer)
@@ -76,7 +62,8 @@ Condition در مسئله Producer-Consumer است.
 '''
     }
 
-# 3 مصرف کننده 1 تولید کننده
+# 3 producer 1 consumer
+# producer -> clock
 def scenario_2():
 
     output_buffer = io.StringIO()
@@ -90,7 +77,7 @@ def scenario_2():
 
         for _ in range(3):
 
-            time.sleep(random.uniform(0.5, 1.5))
+            time.sleep(random.uniform(0.5, 1.5)) #  جابجایی ترتیب نخ ها و استارت زودتر مصرف کننده
 
             item = random.randint(0, 100)
 
@@ -114,9 +101,7 @@ def scenario_2():
 
                 while len(items) == 0:
 
-                    output_buffer.write(
-                        'Consumer waiting...\n'
-                    )
+                    output_buffer.write('Consumer waiting...\n')
 
                     condition.wait()
 
@@ -124,17 +109,12 @@ def scenario_2():
 
                 consumed += 1
 
-                output_buffer.write(
-                    f'Consumer consumed {item}\n'
-                )
+                output_buffer.write(f'Consumer consumed {item}\n')
 
     producers = []
 
     for i in range(3):
-        t = threading.Thread(
-            target=producer,
-            args=(i + 1,)
-        )
+        t = threading.Thread(target=producer, args=(i + 1,))
         producers.append(t)
         t.start()
 
@@ -167,7 +147,7 @@ def scenario_2():
 '''
     }
 
-# 1 تولید کننده 1 مصرف کننده با بافر
+# 1 producer 1 consumer
 def scenario_3():
 
     output_buffer = io.StringIO()
@@ -188,21 +168,17 @@ def scenario_3():
 
                 while len(items) >= BUFFER_SIZE:
 
-                    output_buffer.write(
-                        'Buffer full -> Producer waiting\n'
-                    )
+                    output_buffer.write('Buffer full -> Producer waiting\n')
 
                     condition.wait()
 
                 items.append(item)
 
-                output_buffer.write(
-                    f'Produced {item} | Buffer={items}\n'
-                )
+                output_buffer.write(f'Produced {item} | Buffer={items}\n')
 
                 condition.notify_all()
 
-            time.sleep(random.uniform(0.2, 0.8))
+            time.sleep(random.uniform(0.2, 0.8)) # به دلیل تایم خواب کمتر بیشتر تولید میشه  
 
     def consumer():
 
@@ -212,29 +188,21 @@ def scenario_3():
 
                 while len(items) == 0:
 
-                    output_buffer.write(
-                        'Buffer empty -> Consumer waiting\n'
-                    )
+                    output_buffer.write('Buffer empty -> Consumer waiting\n')
 
                     condition.wait()
 
                 item = items.pop(0)
 
-                output_buffer.write(
-                    f'Consumed {item} | Buffer={items}\n'
-                )
+                output_buffer.write(f'Consumed {item} | Buffer={items}\n')
 
-                condition.notify_all()
+                condition.notify_all() 
 
             time.sleep(random.uniform(0.5, 1))
 
-    producer_thread = threading.Thread(
-        target=producer
-    )
+    producer_thread = threading.Thread(target=producer)
 
-    consumer_thread = threading.Thread(
-        target=consumer
-    )
+    consumer_thread = threading.Thread(target=consumer)
 
     producer_thread.start()
     consumer_thread.start()

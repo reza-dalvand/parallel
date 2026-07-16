@@ -4,7 +4,8 @@ import random
 import queue
 import io
 
-
+# +1 +1 +1
+# -1 -1 -1
 def scenario_1():
 
     output_buffer = io.StringIO()
@@ -72,7 +73,7 @@ Queue عملیات همگام‌سازی را به صورت داخلی
 '''
     }
 
-
+#Clock
 def scenario_2():
 
     output_buffer = io.StringIO()
@@ -84,46 +85,33 @@ def scenario_2():
     def worker(worker_id):
 
         while True:
-            task = q.get()
-            if task is None:
+            task = q.get() 
+            if task is None: 
                 q.task_done()
-                output_buffer.write(
-                    f'Worker-{worker_id} stopped\n'
-                )
-                break
-            output_buffer.write(
-                f'Worker-{worker_id} processing task {task}\n'
-            )
-            time.sleep(
-                random.uniform(0.5, 1.5)
-            )
+                output_buffer.write(f'Worker-{worker_id} stopped\n')
+                break # نخ ها نوبتی در اینجا متوقف میشوند
+            output_buffer.write(f'Worker-{worker_id} processing task {task}\n')
+            
+            time.sleep(random.uniform(0.5, 1.5)) # سبقت نخ ها از هم بدلیل تایم متفاوت
 
-            output_buffer.write(
-                f'Worker-{worker_id} finished task {task}\n'
-            )
+            output_buffer.write(f'Worker-{worker_id} finished task {task}\n')
 
             q.task_done()
 
     workers = []
 
     for i in range(num_workers):
-
-        t = threading.Thread(
-            target=worker,
-            args=(i + 1,)
-        )
-
+        t = threading.Thread(target=worker, args=(i + 1,))
         workers.append(t)
         t.start()
 
     for task in range(1, 11):
-
         q.put(task)
 
-    q.join()
+    q.join() # منتظر بمان تا آیتم ها پردازش شوند
 
     for _ in range(num_workers):
-        q.put(None)
+        q.put(None) # Adding None to signal workers to stop
 
     for t in workers:
         t.join()
@@ -150,69 +138,89 @@ Queue وظیفه توزیع کار میان Workerها
 '''
     }
 
+
+
+# 2 Producers - One Consumer
+# Time
 def scenario_3():
 
     output_buffer = io.StringIO()
 
     q = queue.Queue()
 
-    def producer():
+    producers = 2
+    items_per_producer = 5
 
-        for _ in range(5):
+    def producer(producer_id):
 
-            time.sleep(2)
+        for _ in range(items_per_producer):
 
-            item = random.randint(0, 100)
+            time.sleep(random.uniform(0.5, 1.5))
 
-            q.put(item)
+            item = random.randint(1, 100)
+
+            q.put((producer_id, item))
 
             output_buffer.write(
-                f'Producer produced {item}\n'
+                f'Producer-{producer_id} produced {item}\n'
             )
 
     def consumer():
 
-        for _ in range(5):
+        total_items = producers * items_per_producer
 
-            item = q.get()
+        for _ in range(total_items):
+
+            producer_id, item = q.get()
 
             output_buffer.write(
-                f'Consumer consumed {item}\n'
+                f'Consumer consumed {item} from Producer-{producer_id}\n'
             )
+
+            time.sleep(random.uniform(0.3, 0.8))
 
             q.task_done()
 
-    producer_thread = threading.Thread(
-        target=producer
-    )
+    producer_threads = []
 
-    consumer_thread = threading.Thread(
-        target=consumer
-    )
+    for i in range(producers):
 
-    producer_thread.start()
+        t = threading.Thread(
+            target=producer,
+            args=(i + 1,)
+        )
+
+        producer_threads.append(t)
+        t.start()
+
+    consumer_thread = threading.Thread(target=consumer)
     consumer_thread.start()
 
-    producer_thread.join()
+    for t in producer_threads:
+        t.join()
+
     consumer_thread.join()
 
     return {
         'output': output_buffer.getvalue(),
         'explanation': '''
-در این سناریو یک Thread تولیدکننده
-و یک Thread مصرف‌کننده وجود دارد.
+در این سناریو دو Thread تولیدکننده
+به صورت هم‌زمان داده تولید می‌کنند.
 
-تولیدکننده داده‌ها را داخل Queue قرار می‌دهد
-و مصرف‌کننده آن‌ها را از Queue دریافت می‌کند.
+تمام داده‌های تولیدشده داخل یک Queue
+مشترک قرار می‌گیرند.
 
-اگر Queue خالی باشد،
-تابع get() به صورت خودکار منتظر می‌ماند
-تا داده جدید وارد صف شود.
+Thread مصرف‌کننده بدون توجه به اینکه
+داده توسط کدام تولیدکننده ایجاد شده است،
+آن‌ها را به ترتیب از Queue دریافت
+و پردازش می‌کند.
 
-Queue عملیات همگام‌سازی را به صورت داخلی
-مدیریت می‌کند و نیازی به Lock یا Condition نیست.
+Queue عملیات همگام‌سازی را به صورت
+خودکار انجام می‌دهد و از تداخل
+بین تولیدکننده‌ها جلوگیری می‌کند.
 
-این ساده‌ترین الگوی Producer-Consumer
-با استفاده از Queue است.
+این الگو در سیستم‌هایی که چند منبع
+به طور هم‌زمان داده تولید می‌کنند،
+کاربرد فراوانی دارد.
 '''
     }
