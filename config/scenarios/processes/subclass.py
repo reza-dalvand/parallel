@@ -3,7 +3,7 @@ import multiprocessing
 class MyProcess(multiprocessing.Process):
     def run(self):
         return f'called run method by {self.name}'
-
+# Sequential
 def scenario_1():
     outputs = []
 
@@ -46,10 +46,7 @@ multiprocessing.Process
 
 
 
-
-
-
-
+# Run as parallel processes, then waited for all to finish
 def scenario_2():
     outputs = []
 

@@ -19,6 +19,8 @@ def test_without_barrier(output_queue):
     output_queue.put(line)
 
 
+# Sychronization using Barrier
+# استفاده از ابزار بالا برای همگام سازی پراسس ها روی یک منبع مشترک
 def scenario_1():
     output_queue = multiprocessing.Queue()
     synchronizer = Barrier(2)
@@ -72,9 +74,6 @@ def scenario_1():
 
 
 
-
-# Semaphore
-
 def access_shared_resource(semaphore, output_queue):
     name = multiprocessing.current_process().name
     semaphore.acquire()
@@ -84,7 +83,7 @@ def access_shared_resource(semaphore, output_queue):
     sleep(2)  # شبیه‌سازی کار روی منبع مشترک
     semaphore.release()
 
-
+# Sychronization using Semaphore
 def scenario_2():
     output_queue = multiprocessing.Queue()
     semaphore = Semaphore(2)  # حداکثر ۲ پراسس همزمان
@@ -129,23 +128,22 @@ Processهای فعال منبع را آزاد نکند،
     }
 
 
-# Event
-
+# Sychronization using Event
 def producer(event, output_queue):
     name = multiprocessing.current_process().name
-    now = time()
+    now = time() # زمان آماده سازی دیتا
     output_queue.put("process %s ----> %s  [started, preparing data...]" % (
         name, datetime.fromtimestamp(now)))
     sleep(2)
-    event.set()  # send signals to consumers
-    now = time()
+    event.set()  
+    now = time() # زمان ارسال سیگنال
     output_queue.put("process %s ----> %s  [signal sent]" % (
         name, datetime.fromtimestamp(now)))
 
 
 def consumer(event, output_queue):
     name = multiprocessing.current_process().name
-    event.wait()  # block and wait to receive signale
+    event.wait() 
     now = time()
     output_queue.put("process %s ----> %s  [received signal, started]" % (
         name, datetime.fromtimestamp(now)))

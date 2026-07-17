@@ -38,7 +38,8 @@ class Consumer(multiprocessing.Process):
         if self.queue.empty():
             self.output_queue.put("the queue is empty")
 
-
+# 1 producer - 1 consumer
+# هر دو ثانیه 2 تا تولید سومی هم تولید هم مصرف همزمان
 def scenario_1():
     queue = multiprocessing.Queue()
     output_queue = multiprocessing.Queue()
@@ -81,10 +82,8 @@ Consumer به صورت مداوم Queue را بررسی کرده
         '''
     }
 
-
-
-
-
+# 1 producer - 3 consumer
+# دور اول 3 تولید بعد 3 مصرف دور دوم 2 تولید 2 مصرف دور سوم تا اخر 1 تولید 1 مصرف
 def scenario_2():
     queue = multiprocessing.Queue()
 
@@ -136,7 +135,8 @@ Producer مجموعه‌ای از داده‌ها را تولید کرده
         '''
     }
 
-
+# 3 producer - 1 consumer
+# اول 9 آیتم تولید بعدی یکی مصرف سپس 6 آیتم تولید بعد دونه دونه مصرف میشن
 def scenario_3():
     queue = multiprocessing.Queue()
     output_queue = multiprocessing.Queue()
