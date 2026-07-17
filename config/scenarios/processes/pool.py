@@ -9,7 +9,7 @@ def scenario_1():
 
     pool = multiprocessing.Pool(processes=4)
     pool_outputs = pool.map(function_square, inputs)
-    pool.close()
+    pool.close() # دیگر کاری اضافه نکن تا پردازش بصورت کامل انجام شود
     pool.join()
 
     output = f"Pool : {pool_outputs}"
@@ -43,20 +43,16 @@ Pool وظیفه تقسیم داده‌ها میان Processهای موجود
 
 
 
-
-
-
-
-
-
+# در این سناریو پرادزش به پس زمینه منتقل میشود و برنامه منتظر دریافت نتیجه نمی ماند
 def scenario_2():
     inputs = list(range(0, 100))
 
     pool = multiprocessing.Pool(processes=4)
     async_result = pool.map_async(function_square, inputs)
     pool.close()
+    print("در حال انجام کار دیگر در همین حین پردازش‌ها در پس زمینه ادامه دارند")
     pool_outputs = async_result.get()
-    pool.join()
+    pool.join() # اطمینان از بسته شدن پراسس ها و آزاد کردن منابع
 
     output = f"Pool : {pool_outputs}"
 
@@ -84,14 +80,14 @@ def scenario_2():
         '''
     }
 
-
+# در این سناریو هر کار بصورت جداگانه ارسال میشود و نتایج را بصورت جداگانه میتوان دریافت کرد
 def scenario_3():
     inputs = list(range(0, 100))
 
     pool = multiprocessing.Pool(processes=4)
     async_results = [pool.apply_async(function_square, args=(i,)) for i in inputs]
     pool.close()
-    pool_outputs = [r.get() for r in async_results]
+    pool_outputs = [f"{r.get()}" for r in async_results]
     pool.join()
 
     output = f"Pool : {pool_outputs}"
