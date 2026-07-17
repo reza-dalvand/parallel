@@ -3,7 +3,7 @@ import time
 import random
 import io
 
-#این سناریو به صورت پینگ ‌پنگی کار میکنه یعنی ابتدا یک آیتم اضافه میشه و سپس یک آیتم حذف می‌شود
+# ابتدا یک آیتم اضافه میشه و سپس یک آیتم حذف می‌شود
 class Box:
     def __init__(self, output_buffer):
         self.lock = threading.RLock()
@@ -74,8 +74,7 @@ def scenario_1():
 
 
 
-
-# توی این سناریو 2 آیتم اضافه سپس 2 ایتم حذف میشه و این چرخه تا زمان تموم شدن آیتم ها ادامه داره
+# توی این سناریو 2 آیتم اضافه سپس 2 ایتم حذف میشه
 
 class BoxAlternating:
     def __init__(self, output_buffer):
@@ -157,7 +156,7 @@ def scenario_2():
     }
 
 # در این سناریو از event استفاده شده
-# اول سناریو ادد کارش رو شروع میکنه 10 ایتم اضافه و بعد با کمک event عملیات حذف کامل کارش رو انجام میده
+# 10 آیتم اضافه سپس 10 آیتم حذف میشه
 
 class BoxSequential:
     def __init__(self, output_buffer):

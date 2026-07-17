@@ -3,8 +3,8 @@ import time
 import threading
 import io
 
-# +1 +1 +1...
-# -1 -1 -1 ...
+# 1 producer 1 consumer
+# هر بار یکی تولید یکی مصرف میشود
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -88,8 +88,7 @@ Event در اینجا نقش یک مکانیزم
 
 
 # 3 producer 1 consumer 
-# +1 +1 +1 ...
-# -1 -1 -1 ...
+# هر بار یکی تولید یکی مصرف میشود
 def scenario_2():
     output_buffer = io.StringIO()
 
@@ -158,7 +157,7 @@ def scenario_2():
     }
 
 # 1 producer 1 consumer
-# +1 +1 +1 -1 -1 -1
+# 5 تا تولید و 5 تا مصرف
 def scenario_3():
     output_buffer = io.StringIO()
 

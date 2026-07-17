@@ -4,8 +4,7 @@ import random
 import io
 
 # 1 producer 1 consumer
-# +1 +1 +1 
-# -1 -1 -1
+# 1 مورد تولید 1 مورد مصرف
 def scenario_1():
     output_buffer = io.StringIO()
 

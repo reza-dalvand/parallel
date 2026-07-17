@@ -4,8 +4,8 @@ import random
 import queue
 import io
 
-# +1 +1 +1
-# -1 -1 -1
+# 1 producer 1 consumer
+# 1 مصرف 1 تولید
 def scenario_1():
 
     output_buffer = io.StringIO()
@@ -73,7 +73,9 @@ Queue عملیات همگام‌سازی را به صورت داخلی
 '''
     }
 
-#Clock
+# Time
+# اضافه کردن 10 مورد به صف
+# بعد از اتمام پردازش، نخ ها با دریافت None متوقف میشوند
 def scenario_2():
 
     output_buffer = io.StringIO()
@@ -108,10 +110,10 @@ def scenario_2():
     for task in range(1, 11):
         q.put(task)
 
-    q.join() # منتظر بمان تا آیتم ها پردازش شوند
+    q.join() #  ده مورد که پردازش شد از اینن قسمت عبور میکند
 
     for _ in range(num_workers):
-        q.put(None) # Adding None to signal workers to stop
+        q.put(None) 
 
     for t in workers:
         t.join()

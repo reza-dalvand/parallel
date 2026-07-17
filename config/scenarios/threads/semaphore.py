@@ -6,8 +6,7 @@ from datetime import datetime
 
 
 # 10 producer 10 consumer 
-# +1 +1 +1 ...
-# -1 -1 -1 ...
+# یکی حذف یکی اضافه
 def scenario_1():
     output_buffer = io.StringIO()
 
@@ -60,9 +59,8 @@ def scenario_1():
 '''
 }
 
-# 5 producer  consumer 1
-# +1 +1 +1 ...
-# -1 -1 -1 ...
+# 5 producer  consumer 1 and using lock with semaphore
+# یکی حذف یکی اضافه
 def scenario_2():
     output_buffer = io.StringIO()
     semaphore = threading.Semaphore(0)
@@ -73,15 +71,15 @@ def scenario_2():
         time.sleep(random.uniform(0.1, 0.5))
         item = random.randint(0, 1000)
 
-        with items_lock:
+        with items_lock: 
             items.append(item)
             output_buffer.write(f"[Producer-{producer_id}] Produced item {item}\n")
 
         semaphore.release()  # به consumer اطلاع می‌دهد که یک آیتم جدید آماده است
 
-    def consumer(total_items): #total_items = num_producers < 5
+    def consumer(total_items): 
         consumed = 0
-        while consumed < total_items:
+        while consumed < total_items: #total_items = num_producers < 5
             semaphore.acquire()  
 
             with items_lock:

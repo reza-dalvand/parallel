@@ -123,6 +123,8 @@ def scenario_2():
 '''
     }
 
+
+
 def parent_process(parent_id, children, queue):
 
     output = ""
@@ -162,7 +164,7 @@ def scenario_3():
     output_buffer = io.StringIO()
     queue = multiprocessing.Queue()
 
-
+    # دیگر پراسس اصلی مد نظر نیست این دو پراسس به عنوان پرنت در نظر گرفته میشوند
     parent1 = multiprocessing.Process(
         target=parent_process,
         args=(1, [1,2], queue)

@@ -119,8 +119,8 @@ def scenario_3():
 
     indices = [1, 2, 3, 4, 5, 6]
 
-    for i in range(0, len(indices), BATCH_SIZE):
-        batch_indices = indices[i:i + BATCH_SIZE] #select 2 number form the indices
+    for i in range(0, len(indices), BATCH_SIZE): #1,3 - 3,5 - 5,7
+        batch_indices = indices[i:i + BATCH_SIZE] #1,2 - 3,4 - 5,6
         batch_processes = []
 
         for index in batch_indices:
