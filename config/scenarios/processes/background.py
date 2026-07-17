@@ -86,7 +86,7 @@ def func2(output_queue):
 
     output_queue.put(f"Exiting {name}")
 
-# نمایش عملکرد پراسس های بک گراند بعد از اتمام پراسس فور گراند
+# نمایش عملکرد پراسس های بک گراند در صورت اتمام پراسس فور گراند
 def scenario_2():
     output_queue = multiprocessing.Queue()
 
@@ -185,7 +185,7 @@ def main_task(output_queue):
     )
 
 
-
+# دو مورد چک یک مورد پردازش تا آخر به این صورت
 def scenario_3():
 
     output_queue = multiprocessing.Queue()
