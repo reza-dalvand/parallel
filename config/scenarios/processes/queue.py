@@ -4,7 +4,7 @@ import time
 
 
 class Producer(multiprocessing.Process):
-    def __init__(self, queue, output_queue, count=5):
+    def __init__(self, queue, output_queue, count=10):
         multiprocessing.Process.__init__(self)
         self.queue = queue
         self.output_queue = output_queue
@@ -14,42 +14,45 @@ class Producer(multiprocessing.Process):
         for i in range(self.count):
             item = random.randint(0, 256)
             self.queue.put(item)
-            self.output_queue.put(f"Process Producer : item {item} appended to queue {self.name}")
-            self.output_queue.put(f"The size of queue is {self.queue.qsize()}")
-            time.sleep(1)
+
+            time.sleep(0.1)
+            self.output_queue.put(
+                f"Process Producer : item {item} appended to queue {self.name}"
+            )
+            self.output_queue.put(
+                f"The size of queue is {self.queue.qsize()}"
+            )
 
 
 class Consumer(multiprocessing.Process):
-    def __init__(self, queue, output_queue, expected_items=5):
+    def __init__(self, queue, output_queue, expected_items=10):
         multiprocessing.Process.__init__(self)
         self.queue = queue
         self.output_queue = output_queue
         self.expected_items = expected_items
 
     def run(self):
-        items_consumed = 0
-        while items_consumed < self.expected_items:
+        consumed = 0
+        while consumed < self.expected_items:
             if not self.queue.empty():
-                time.sleep(2)
+                time.sleep(0.2)
                 item = self.queue.get()
-                self.output_queue.put(f"Process Consumer : item {item} popped from by {self.name}")
-                items_consumed += 1
+                self.output_queue.put(
+                    f"Process Consumer : item {item} popped from by {self.name}"
+                )
+                consumed += 1
+        self.output_queue.put("the queue is empty")
 
-        if self.queue.empty():
-            self.output_queue.put("the queue is empty")
 
-# 1 producer - 1 consumer
-# هر دو ثانیه 2 تا تولید سومی هم تولید هم مصرف همزمان
 def scenario_1():
     queue = multiprocessing.Queue()
     output_queue = multiprocessing.Queue()
 
-    process_producer = Producer(queue, output_queue, count=5)
-    process_consumer = Consumer(queue, output_queue, expected_items=5)
+    process_producer = Producer(queue, output_queue, count=10)
+    process_consumer = Consumer(queue, output_queue, expected_items=10)
 
     process_producer.start()
     process_consumer.start()
-
     process_producer.join()
     process_consumer.join()
 
@@ -57,133 +60,128 @@ def scenario_1():
     while not output_queue.empty():
         output_lines.append(output_queue.get())
 
-    output = "\n".join(output_lines)
-
     return {
-        'output': output,
-        'explanation': '''
-        در این سناریو یک Process تولیدکننده (Producer)
-و یک Process مصرف‌کننده (Consumer)
-به صورت همزمان ایجاد و اجرا می‌شوند.
+        "output": "\n".join(output_lines),
+        "explanation": '''در این سناریو دو کلاس producer و consumer
+از multiprocessing.Process ارث‌بری می‌کنند.
 
-Producer تعدادی داده تصادفی تولید کرده
-و آن‌ها را در یک Queue مشترک قرار می‌دهد.
+برای دریافت خروجی از subprocess‌ها از یک
+Queue دوم به نام output_queue استفاده شده.
+چون subprocess‌ها حافظه جداگانه دارند،
+نوشتن مستقیم به StringIO کار نمی‌کند.
 
-Consumer به صورت مداوم Queue را بررسی کرده
-و پس از دریافت هر داده، آن را از Queue خارج می‌کند.
+producer هر ۰.۱ ثانیه یک آیتم تصادفی
+تولید کرده و در queue اصلی قرار می‌دهد.
 
-در طول اجرا، Producer مسئول افزودن داده‌ها
-و Consumer مسئول پردازش و حذف آن‌ها است.
+consumer هر ۰.۲ ثانیه یک آیتم برمی‌دارد
+و تا مصرف ۱۰ آیتم ادامه می‌دهد.
 
-این سناریو ساده‌ترین شکل استفاده از Queue
-برای تبادل داده میان Processها را نمایش می‌دهد
-و مفهوم Producer-Consumer را در سطح Processها
-معرفی می‌کند.
-        '''
+هر دو Process همزمان اجرا می‌شوند و
+پیام‌های خود را در output_queue می‌ریزند.
+پس از join() هر دو، برنامه اصلی
+پیام‌ها را از output_queue می‌خواند.'''
     }
 
-# 1 producer - 3 consumer
-# دور اول 3 تولید بعد 3 مصرف دور دوم 2 تولید 2 مصرف دور سوم تا اخر 1 تولید 1 مصرف
+
+
+def worker(worker_id, task_queue, result_queue):
+    while True:
+        task = task_queue.get()
+        if task is None:
+            result_queue.put(f"Worker {worker_id} : Exiting.")
+            break
+        time.sleep(0.15)
+        result_queue.put(f"Worker {worker_id} : Computed {task}")
+
+
 def scenario_2():
-    queue = multiprocessing.Queue()
-
-    output_queue = multiprocessing.Queue()
-
-    process_producer = Producer(queue, output_queue, count=15)
-    process_consumer1 = Consumer(queue, output_queue, expected_items=5)
-    process_consumer2 = Consumer(queue, output_queue, expected_items=5)
-    process_consumer3 = Consumer(queue, output_queue, expected_items=5)
-
-    process_producer.start()
-    process_consumer1.start()
-    process_consumer2.start()
-    process_consumer3.start()
-
-    process_producer.join()
-    process_consumer1.join()
-    process_consumer2.join()
-    process_consumer3.join()
-
+    task_queue = multiprocessing.Queue()
+    result_queue = multiprocessing.Queue()
+    
+    num_workers = 3
+    workers = []
+    
+    for i in range(num_workers):
+        p = multiprocessing.Process(target=worker, args=(i, task_queue, result_queue))
+        workers.append(p)
+        p.start()
+        
+    # اضافه کردن ۱۰ وظیفه به صف
+    for i in range(1, 11):
+        task_queue.put(i)
+        
+    # اضافه کردن این مقدار برای پایان دادن به کار پراسس ها
+    for i in range(num_workers):
+        task_queue.put(None)
+        
+    for p in workers:
+        p.join()
+        
     output_lines = []
-    while not output_queue.empty():
-        output_lines.append(output_queue.get())
-
-    output = "\n".join(output_lines)
-
+    while not result_queue.empty():
+        output_lines.append(result_queue.get())
+        
     return {
-        'output': output,
-        'explanation': '''
-        در این سناریو یک Process تولیدکننده
-و سه Process مصرف‌کننده به صورت همزمان اجرا می‌شوند.
+        "output": "\n".join(output_lines),
+        "explanation": '''در این سناریو از صف برای "توزیع بار" (Load Balancing) استفاده شده است.
 
-Producer مجموعه‌ای از داده‌ها را تولید کرده
-و در Queue مشترک قرار می‌دهد.
+به جای یک مصرف‌کننده، ۳ کارگر (Worker) همزمان به یک صف گوش می‌دهند.
+این کار سرعت پردازش را بالا می‌برد چون هر کارگر که بی‌کار شود، 
+سریعاً وظیفه بعدی را از صف برمی‌دارد.
 
-هر Consumer به صورت مستقل از Queue
-داده دریافت کرده و آن را پردازش می‌کند.
-
-به دلیل استفاده از Queue مشترک،
-داده‌ها میان Consumerها تقسیم شده
-و هر آیتم تنها توسط یکی از آن‌ها مصرف می‌شود.
-
-در نتیجه بار پردازش میان چند Consumer
-توزیع شده و سرعت انجام کار افزایش می‌یابد.
-
-این الگو در سیستم‌های پردازش موازی،
-سامانه‌های صف پیام و معماری‌های توزیع‌شده
-برای متعادل‌سازی بار پردازشی کاربرد فراوان دارد.
-        '''
+نکته مهم این سناریو تکنیک Poison Pill (ارسال مقدار None) است. 
+چون کارگرها در یک حلقه بی‌نهایت (while True) هستند، 
+برنامه اصلی با فرستادن None به تعداد کارگرها، به آن‌ها می‌فهماند 
+که کار تمام شده و باید بسته شوند.'''
     }
 
-# 3 producer - 1 consumer
-# اول 9 آیتم تولید بعدی یکی مصرف سپس 6 آیتم تولید بعد دونه دونه مصرف میشن
+
+
+def daemon_processor(job_queue, output_queue):
+    # چون پراسس از نوع دیمن است بعد از پردازش صف خودکار از بین میرود و حلقه قطع میشود
+    while True:
+        job = job_queue.get()
+        
+        time.sleep(0.2)
+        output_queue.put(f"Job '{job}' is successfully processed.")
+        
+        # به صف اطلاع می‌دهیم که پردازش این آیتم تمام شده است
+        job_queue.task_done()
+
 def scenario_3():
-    queue = multiprocessing.Queue()
+    job_queue = multiprocessing.JoinableQueue()  # استفاده از صف پیوسته به جای صف معمولی
     output_queue = multiprocessing.Queue()
-
-    process_producer1 = Producer(queue, output_queue, count=5)
-    process_producer2 = Producer(queue, output_queue, count=5)
-    process_producer3 = Producer(queue, output_queue, count=5)
-    process_consumer = Consumer(queue, output_queue, expected_items=15)
-
-    process_producer1.start()
-    process_producer2.start()
-    process_producer3.start()
-    process_consumer.start()
-
-    process_producer1.join()
-    process_producer2.join()
-    process_producer3.join()
-    process_consumer.join()
-
+    
+    p = multiprocessing.Process(target=daemon_processor, args=(job_queue, output_queue))
+    p.daemon = True
+    p.start()
+    
+    jobs = ["Update_DB", "Send_Emails", "Clear_Cache", "Generate_Report"]
+    for job in jobs:
+        output_queue.put(f"Main: Submitting job '{job}' to queue...")
+        job_queue.put(job)
+            
+    # این دستور برنامه اصلی را متوقف می‌کند تا زمانی که به ازای هر پوت
+    # یک بار دستور تسک دان توسط کارگرها صدا زده شود
+    job_queue.join()
+    
+    output_queue.put("Main: All jobs completed! Moving forward.")
+    
     output_lines = []
     while not output_queue.empty():
         output_lines.append(output_queue.get())
-
-    output = "\n".join(output_lines)
-
+        
     return {
-        'output': output,
-        'explanation': '''
-        در این سناریو سه Process تولیدکننده
-و یک Process مصرف‌کننده به صورت همزمان اجرا می‌شوند.
+        "output": "\n".join(output_lines),
+        "explanation": '''این سناریو تفاوت JoinableQueue با صف معمولی را نشان می‌دهد.
 
-هر Producer داده‌های مخصوص به خود را تولید کرده
-و در Queue مشترک قرار می‌دهد.
+در اینجا ما نیازی نداریم که منتظر اتمام خودِ پردازش (process.join) بمانیم،
+بلکه منتظر اتمام "آیتم‌های داخل صف" (job_queue.join) می‌مانیم.
 
-تمام داده‌های تولیدشده توسط Producerهای مختلف
-در یک صف واحد جمع‌آوری می‌شوند.
+هر بار که پردازشگر یک کار را تمام می‌کند، متد task_done() را صدا می‌زند.
+وقتی تعداد task_done ها با تعداد آیتم‌هایی که در صف گذاشته بودیم برابر شود،
+job_queue.join() در برنامه اصلی آزاد شده و برنامه ادامه پیدا می‌کند.
 
-Consumer تمامی داده‌های موجود در Queue را
-به ترتیب دریافت و پردازش می‌کند.
-
-این ساختار امکان تجمیع داده‌های تولیدشده
-از چند منبع مختلف را فراهم می‌کند
-و Consumer نقش نقطه مرکزی پردازش را بر عهده دارد.
-
-این الگو در سامانه‌های جمع‌آوری لاگ،
-پردازش رویدادها، دریافت داده از چند حسگر
-و سیستم‌های پردازش متمرکز بسیار رایج است.
-        '''
+همچنین از daemon=True استفاده شده تا پردازشگر مثل یک سرویس پس‌زمینه
+عمل کند و نیازی به ارسال سیگنال پایان (مثل سناریو ۲) نداشته باشد.'''
     }
-

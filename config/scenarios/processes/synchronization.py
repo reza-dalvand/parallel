@@ -3,19 +3,19 @@ from multiprocessing import Barrier, Lock, Process, Semaphore, Event
 from time import time, sleep
 from datetime import datetime
 
-def test_with_barrier(synchronizer, serializer, output_queue):
+def test_with_barrier(synchronizer, serializer_lock, output_queue):
     name = multiprocessing.current_process().name
     synchronizer.wait()
     now = time()
-    with serializer:
-        line = "process %s ----> %s" % (name, datetime.fromtimestamp(now))
+    with serializer_lock:
+        line = "process %s ----> %s start" % (name, datetime.fromtimestamp(now))
         output_queue.put(line)
 
 
 def test_without_barrier(output_queue):
     name = multiprocessing.current_process().name
     now = time()
-    line = "process %s ----> %s" % (name, datetime.fromtimestamp(now))
+    line = "process %s ----> %s start" % (name, datetime.fromtimestamp(now))
     output_queue.put(line)
 
 
@@ -24,13 +24,13 @@ def test_without_barrier(output_queue):
 def scenario_1():
     output_queue = multiprocessing.Queue()
     synchronizer = Barrier(2)
-    serializer = Lock()
+    serializer_lock = Lock()
 
     processes = [
         Process(name='p1 - test_with_barrier', target=test_with_barrier,
-                args=(synchronizer, serializer, output_queue)),
+                args=(synchronizer, serializer_lock, output_queue)),
         Process(name='p2 - test_with_barrier', target=test_with_barrier,
-                args=(synchronizer, serializer, output_queue)),
+                args=(synchronizer, serializer_lock, output_queue)),
         Process(name='p3 - test_without_barrier', target=test_without_barrier,
                 args=(output_queue,)),
         Process(name='p4 - test_without_barrier', target=test_without_barrier,
@@ -80,7 +80,7 @@ def access_shared_resource(semaphore, output_queue):
     now = time()
     line = "process %s ----> %s  [ENTERED]" % (name, datetime.fromtimestamp(now))
     output_queue.put(line)
-    sleep(2)  # شبیه‌سازی کار روی منبع مشترک
+    sleep(2)
     semaphore.release()
 
 # Sychronization using Semaphore
@@ -136,9 +136,6 @@ def producer(event, output_queue):
         name, datetime.fromtimestamp(now)))
     sleep(2)
     event.set()  
-    now = time() # زمان ارسال سیگنال
-    output_queue.put("process %s ----> %s  [signal sent]" % (
-        name, datetime.fromtimestamp(now)))
 
 
 def consumer(event, output_queue):

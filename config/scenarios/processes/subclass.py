@@ -53,8 +53,6 @@ multiprocessing.Process
 
 
 # Run as parallel processes, then waited for all to finish
-import io
-import multiprocessing
 
 def scenario_2():
 
@@ -108,10 +106,6 @@ multiprocessing.Process
 استفاده از multiprocessing است.
         '''
     }
-
-
-import multiprocessing
-import io
 
 class MessageProcess(multiprocessing.Process):
 
